@@ -2,13 +2,12 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-// 1. TUS TOKENS DE META
-// El token que usas para verificar el Webhook (El tuyo original)
+// --- 1. TUS TOKENS DE META ---
 const MI_TOKEN = 'SAQSAYKI_TOKEN_SECRETO_2026';
-// El token de acceso temporal o permanente que te da Meta para enviar mensajes
-const TOKEN_DE_META = 'EAAYTIbPoim8BRoO1RgIeAndKz6M8FwUZBZAllSbUpMcvmRZBRxt7b7MaSMHW8xsynfdrf4J0ZCZAhusEjXyRsTWWVvXPiaf6rcStwfjtDZBrC801gZBBQPNnFacvH9ZBSeOqvTxhVYf5Q5fUtfvGcADnPakKgdwP1eJXilXuZBDZCZBKOBGGZCLTSzO0czY008TAiER5FshTjrn05PqIx3fglwsMIjOVzRPnmbrfyaYNVMejel4srEZCZCmOgDY8LQm8FhSLZAcOaAulNeA24h3MqsqyRmVoTMB'; 
+const TOKEN_DE_META = 'EAAYTIbPoim8BRqmBeLtYvt9da6ozzEkJsHE7qPfvRwGtAFVCBEYfEAopqsZBnI6F7D4PNhvOB3WRvsyuGjZAAAcDtPSZCCZBy3APFNLVgNUAfBetJk2ZAdZBPdqwCAO28Tl1LUJSnrpp1QBmDsCcqi3CjD28e5ZC95WaulPEKnJ4cXSXbgmz3tLebythyg1rOVzArW20YKgu3JfUEMwdYzXVvp16WHc4d51NakMtaTMiqAEingGyyAB6b1csZAZBwZAnVnCdhZBxI4esvOecBACE0qB'; 
 
-// 2. TU MENÚ PRINCIPAL
+// --- 2. TEXTOS DE LAS RESPUESTAS Y MENÚS ---
+
 const menuPrincipal = `Bienvenido(a) al Parque Saqsayqui de Juegos Extremos!
 
 Nos alegra recibir su mensaje. Somos un espacio dedicado a la diversión, la aventura y las experiencias inolvidables para toda la familia.
@@ -23,7 +22,90 @@ Por favor, indíquenos cómo podemos ayudarle y le responderemos a la brevedad. 
 4️⃣ COMO LLEGAR 
 5️⃣ PLATOS A LA CARTA`;
 
-// 3. RUTA PARA VERIFICACIÓN DE WEBHOOK (Tu código intacto)
+const respuestaHorarios = `☀️ *Nuestro horario de atención es:*
+🗓️ Lunes a domingo (incluyendo feriados)
+⏰ De 9:30 a.m. a 5:30 p.m.
+
+🏞️ *LUGARES Y ATRACTIVOS A VISITAR*
+El ingreso al parque temático, que incluye miradores y el puente acuático, tiene los siguientes costos:
+👉 Adultos: *S/ 7.00*
+👉 Niños: *S/ 4.00*
+
+Podrás visitar miradores como:
+* Mirador de la *mano gigante del Inca*
+* *Bosque encantado de los duendes*
+* Mirador de la *mano de choclo de oro*
+* *Trilogía andina*
+* Y *muchos más miradores*
+
+🐾 *Política de mascotas:*
+¡Sí, puedes venir con tus perritos! Solo te pedimos que traigas una bolsa para sus desechos.`;
+
+const respuestaPrecios = `💰 *PRECIOS UNITARIOS DE JUEGOS*
+
+🌊 *JUEGOS ACUÁTICOS:*
+* *Caminata en línea* – S/ 5.00
+* *Puente acuático* – S/ 5.00
+* *Tirolesa acuática* – S/ 8.00
+* *Puente aéreo* – S/ 8.00
+
+⛰️ *JUEGOS DE ALTURA:*
+* *Columpio extremo “Vuelo del Cóndor”* (25 m) – S/ 20.00
+* *Circuito de 21 obstáculos extremos* – S/ 20.00`;
+
+const respuestaPaquetes = `🎒 *PAQUETES PROMOCIONALES*
+Nuestros paquetes son por persona y están diseñados para que disfrutes al máximo:
+
+🔹 *PAQUETE 1 – S/ 25.00*
+* Entrada al parque (miradores)
+* Puente acuático
+* Caminata en línea
+* Tirolesa acuática
+* Puente aéreo
+
+🔹 *PAQUETE 2 – S/ 35.00*
+* Entrada al parque (miradores)
+* Columpio extremo
+* Circuito de 21 obstáculos
+* Puente acuático
+
+🔹 *PAQUETE 3 – S/ 45.00 – EXPERIENCIA COMPLETA*
+* Entrada al parque (miradores)
+* Columpio extremo (25 m)
+* Circuito de 21 obstáculos
+* Tirolesa acuática
+* Caminata en línea
+* Puente aéreo
+* Puente acuático`;
+
+const respuestaComoLlegar = `🚕 *COMO LLEGAR A SAQSAYKI*
+
+[Coloca aquí la dirección exacta del parque o el enlace de Google Maps]
+
+🚖 *Servicio de taxi:*
+Si necesitas un taxi seguro para llegar, puedes contactar al número: *926050769*.`;
+
+const respuestaPlatos = `🍽️ *PLATOS A LA CARTA*
+También ofrecemos deliciosos platos a la carta en nuestra quinta restaurante:
+
+* Cuy al horno entero — S/ 60
+* Trucha frita — S/ 25
+* Chicharrón de cerdo — S/ 25
+* Chuleta de cerdo — S/ 25
+* Pollo al horno — S/ 25
+
+⚠️ Se realizan reservas con los platos de comida.`;
+
+// Texto final que se le sumará a las respuestas 1, 2, 3, 5 para incentivar el contacto
+const textoContacto = `\n\n📲 *INFORMES Y RESERVAS:*
+Para cualquier consulta o reserva, no dudes en contactarnos:
+📞 *983 838 681*
+📞 *974 362 000*
+
+🔥 *¡Vive la aventura en SAQSAYKI!* 🥳`;
+
+
+// --- 3. RUTA PARA VERIFICACIÓN DE WEBHOOK ---
 app.get('/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -37,26 +119,24 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// 4. RUTA PARA RECIBIR Y RESPONDER MENSAJES (Mejorada)
+// --- 4. RUTA PARA RECIBIR Y RESPONDER MENSAJES ---
 app.post('/webhook', (req, res) => {
     const body = req.body;
     
     if (body.object === 'whatsapp_business_account') {
-        // Navegamos por el JSON que envía Meta para encontrar el mensaje de texto
         if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
             
             const mensajeEntrante = body.entry[0].changes[0].value.messages[0];
-            const numeroCliente = mensajeEntrante.from; // Número de quien escribe
+            const numeroCliente = mensajeEntrante.from; 
             const idTelefonoNegocio = body.entry[0].changes[0].value.metadata.phone_number_id;
 
-            // Solo respondemos si enviaron texto (ignoramos audios, imágenes por ahora)
             if (mensajeEntrante.type === 'text') {
                 const textoCliente = mensajeEntrante.text.body.trim();
                 
-                // Procesamos la respuesta según lo que escribió
+                // Procesamos la respuesta correspondiente
                 const respuesta = procesarRespuesta(textoCliente);
                 
-                // Enviamos el mensaje de vuelta
+                // Enviamos la respuesta de vuelta a WhatsApp
                 enviarMensaje(idTelefonoNegocio, numeroCliente, respuesta);
             }
         }
@@ -66,22 +146,27 @@ app.post('/webhook', (req, res) => {
     }
 });
 
-// 5. LÓGICA DE LAS OPCIONES
+// --- 5. ENRUTADOR DE RESPUESTAS ---
 function procesarRespuesta(textoEntrante) {
     switch (textoEntrante) {
-        case "1": return "Aquí irá la información de los HORARIOS.";
-        case "2": return "Aquí irá la información de los PRECIOS UNITARIOS.";
-        case "3": return "Aquí irá la información de los PAQUETES PROMOCIONALES.";
-        case "4": return "Aquí irá la información de COMO LLEGAR.";
-        case "5": return "Aquí irá la información de los PLATOS A LA CARTA.";
-        default: return menuPrincipal; // Si envían "Hola" u otra cosa, mandamos el menú
+        case "1": 
+            return respuestaHorarios + textoContacto;
+        case "2": 
+            return respuestaPrecios + textoContacto;
+        case "3": 
+            return respuestaPaquetes + textoContacto;
+        case "4": 
+            return respuestaComoLlegar; // No lleva el texto de reservas directamente para mantenerlo limpio
+        case "5": 
+            return respuestaPlatos + textoContacto;
+        default: 
+            return menuPrincipal; // Cualquier palabra ("hola", "buenas", etc.) despliega el menú
     }
 }
 
-// 6. FUNCIÓN PARA ENVIAR EL MENSAJE VÍA META
+// --- 6. FUNCIÓN ENVIAR MENSAJE VIA API DE META ---
 async function enviarMensaje(idTelefono, numeroDestino, texto) {
     try {
-        // Para Node.js 18+ fetch ya viene integrado. 
         const url = `https://graph.facebook.com/v17.0/${idTelefono}/messages`;
         
         await fetch(url, {
@@ -97,13 +182,13 @@ async function enviarMensaje(idTelefono, numeroDestino, texto) {
                 text: { body: texto }
             })
         });
-        console.log(`✅ Mensaje enviado exitosamente al número ${numeroDestino}`);
+        console.log(`✅ Mensaje enviado a ${numeroDestino}`);
     } catch (error) {
         console.error('❌ Error al enviar mensaje:', error);
     }
 }
 
-// 7. INICIO DEL SERVIDOR
+// --- 7. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Bot corriendo perfectamente en el puerto ${PORT}`);
