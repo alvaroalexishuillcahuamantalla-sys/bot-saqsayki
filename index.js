@@ -1,37 +1,46 @@
 const express = require('express');
+const axios = require('axios'); // Necesitarás instalar axios: npm install axios
 const app = express();
 app.use(express.json());
 
-// El token que pondrás en el panel de Meta
 const MI_TOKEN = 'SAQSAYKI_TOKEN_SECRETO_2026';
+// CAMBIA ESTO por tu TOKEN de API de WhatsApp de Meta (del panel)
+const WHATSAPP_TOKEN = 'TU_TOKEN_DE_ACCESO_DE_META'; 
+const NUMERO_ID = 'TU_ID_DE_NUMERO_DE_TELEFONO';
 
-// Ruta para verificación de Webhook
 app.get('/webhook', (req, res) => {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+    if (req.query['hub.verify_token'] === MI_TOKEN) res.send(req.query['hub.challenge']);
+    else res.sendStatus(403);
+});
 
-    if (mode === 'subscribe' && token === MI_TOKEN) {
-        console.log('Webhook verificado correctamente');
-        res.status(200).send(challenge);
-    } else {
-        res.sendStatus(403);
+app.post('/webhook', async (req, res) => {
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const message = value?.messages?.[0];
+
+    if (message) {
+        const from = message.from; // Número del usuario
+        const msgBody = message.text?.body.toLowerCase();
+
+        // Lógica del Menú
+        let respuesta = "Hola, bienvenido. Escribe:\n1. Servicios\n2. Contacto";
+        if (msgBody === '1') respuesta = "Nuestros servicios son:\n- Diseño Web\n- Marketing";
+        if (msgBody === '2') respuesta = "Puedes contactarnos al +51 999 999 999";
+
+        // Enviar respuesta a WhatsApp
+        await axios({
+            method: 'POST',
+            url: `https://graph.facebook.com/v19.0/${NUMERO_ID}/messages`,
+            headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` },
+            data: {
+                messaging_product: 'whatsapp',
+                to: from,
+                text: { body: respuesta }
+            }
+        });
     }
+    res.sendStatus(200);
 });
 
-// Ruta para recibir mensajes
-app.post('/webhook', (req, res) => {
-    const body = req.body;
-    
-    if (body.object === 'whatsapp_business_account') {
-        console.log('Mensaje recibido:', JSON.stringify(body, null, 2));
-        res.sendStatus(200);
-    } else {
-        res.sendStatus(404);
-    }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Bot corriendo en el puerto ${PORT}`);
-});
+app.listen(process.env.PORT || 3000);
