@@ -80,7 +80,7 @@ Nuestros paquetes son por persona y están diseñados para que disfrutes al máx
 
 const respuestaComoLlegar = `🚕 *COMO LLEGAR A SAQSAYKI*
 
-[Coloca aquí la dirección exacta del parque o el enlace de Google Maps]
+https://maps.app.goo.gl/xrwjZyXT2iBeMiUr9
 
 🚖 *Servicio de taxi:*
 Si necesitas un taxi seguro para llegar, puedes contactar al número: *926050769*.`;
