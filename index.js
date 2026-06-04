@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const pino = require('pino');
@@ -19,11 +19,23 @@ app.listen(PORT, () => {
 async function iniciarBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sesion_whatsapp');
 
+    // 🌟 CLAVE: Obtener dinámicamente la última versión de WhatsApp Web para evitar el error 405
+    let version = [2, 3000, 1015901307]; // Versión de respaldo
+    try {
+        const checkVersion = await fetchLatestBaileysVersion();
+        if (checkVersion && checkVersion.version) {
+            version = checkVersion.version;
+            console.log(`💻 Conectando con versión de WhatsApp Web: ${version.join('.')}`);
+        }
+    } catch (err) {
+        console.log('⚠️ No se pudo obtener la última versión en línea, usando versión de respaldo.');
+    }
+
     const sock = makeWASocket({
         auth: state,
+        version: version, // 🌟 Aplicamos la versión aquí
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
-        // 🌟 CLAVE 1: Esto camufla la conexión para que WhatsApp no la bloquee de inmediato
         browser: ['Ubuntu', 'Chrome', '20.0.04'] 
     });
 
@@ -45,12 +57,11 @@ async function iniciarBot() {
             const razon = lastDisconnect?.error?.message || 'Desconocida';
             const debeReconectar = codigoError !== DisconnectReason.loggedOut;
             
-            // 🌟 CLAVE 2: Imprime la razón exacta del cierre para saber qué pasa
             console.log(`❌ Conexión cerrada. Código: ${codigoError} | Razón: ${razon}`);
             
             if (debeReconectar) {
-                console.log('🔄 Esperando 5 segundos para intentar reconectar de forma segura...');
-                setTimeout(() => iniciarBot(), 5000); 
+                console.log('🔄 Esperando 7 segundos para intentar reconectar...');
+                setTimeout(() => iniciarBot(), 7000); 
             }
         } else if (connection === 'open') {
             console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está listo. 🎉\n');
