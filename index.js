@@ -9,14 +9,15 @@ const PORT = process.env.PORT || 10000;
 // Variables globales para controlar el estado y el QR en la web
 let qrCodeUrl = '';
 let botStatus = 'Iniciando el bot, por favor espera...';
+let sock = null; // Guardamos la instancia del socket globalmente
 
 // Lógica principal del Bot
 async function iniciarBot() {
-    // Usamos tu carpeta de sesión: sesion_whatsapp
+    // Carpeta de sesión segura
     const { state, saveCreds } = await useMultiFileAuthState('sesion_whatsapp');
 
-    // Obtener dinámicamente la última versión de WhatsApp Web para evitar el error 405
-    let version = [2, 3000, 1015901307]; // Versión de respaldo
+    // Obtener la última versión de WhatsApp Web para evitar errores de obsolescencia
+    let version = [2, 3000, 1015901307]; 
     try {
         const checkVersion = await fetchLatestBaileysVersion();
         if (checkVersion && checkVersion.version) {
@@ -24,23 +25,25 @@ async function iniciarBot() {
             console.log(`💻 Conectando con versión de WhatsApp Web: ${version.join('.')}`);
         }
     } catch (err) {
-        console.log('⚠️ No se pudo obtener la última versión en línea, usando versión de respaldo.');
+        console.log('⚠️ Usando versión de respaldo para WhatsApp Web.');
     }
 
-    const sock = makeWASocket({
+    // Creamos la conexión
+    sock = makeWASocket({
         auth: state,
         version: version, 
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: false, // Desactivado de consola para no deformar logs
+        printQRInTerminal: false, 
         browser: ['Ubuntu', 'Chrome', '20.0.04'] 
     });
 
+    // Guardar credenciales cada vez que se actualicen (mantiene la sesión viva)
     sock.ev.on('creds.update', saveCreds);
 
+    // Manejo de estados de la conexión
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // 🌟 CAPTURA EL QR PARA LA PÁGINA WEB
         if (qr) {
             qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
             botStatus = '¡Código QR listo! Escanéalo con tu teléfono en WhatsApp > Dispositivos Vinculados.';
@@ -50,53 +53,87 @@ async function iniciarBot() {
         if (connection === 'close') {
             const codigoError = lastDisconnect?.error?.output?.statusCode;
             const razon = lastDisconnect?.error?.message || 'Desconocida';
+            
+            // Si el código NO es "loggedOut", significa que fue una caída de internet, reinicio del servidor, etc.
             const debeReconectar = codigoError !== DisconnectReason.loggedOut;
             
             console.log(`❌ Conexión cerrada. Código: ${codigoError} | Razón: ${razon}`);
-            qrCodeUrl = ''; // Limpiamos el QR al cerrarse
+            qrCodeUrl = ''; 
             
             if (debeReconectar) {
-                botStatus = '🔄 Conexión interrumpida. Esperando 7 segundos para intentar reconectar...';
+                botStatus = '🔄 Conexión interrumpida o teléfono sin internet. Intentando reconectar automáticamente...';
+                console.log('🔄 Intentando reconectar en 7 segundos...');
                 setTimeout(() => iniciarBot(), 7000); 
             } else {
-                botStatus = '❌ Sesión cerrada por el usuario. Elimina la carpeta "sesion_whatsapp" para volver a vincular.';
+                // Esto pasa si desvinculas el bot desde el celular o si pasan los 14 días de inactividad
+                botStatus = '❌ Sesión expirada o cerrada por el usuario. Es necesario volver a escanear el código QR.';
+                console.log('⚠️ La sesión se eliminó permanentemente. Requiere nueva vinculación.');
             }
         } else if (connection === 'open') {
-            qrCodeUrl = ''; // Limpiamos el QR porque ya entramos con éxito
+            qrCodeUrl = ''; 
             botStatus = '🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está en línea y respondiendo.';
-            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está listo. 🎉\n');
+            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está listo y activo. 🎉\n');
         }
     });
 
-    // Tu lógica exacta de respuestas e historial de mensajes
+    // Escucha y respuesta automática de mensajes
     sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0];
-        if (!msg.key.fromMe && m.type === 'notify') {
-            const remite = msg.key.remoteJid;
-            const textoRecibido = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-            const opcion = textoRecibido.trim().toLowerCase();
+        try {
+            const msg = m.messages[0];
+            
+            if (!msg || !msg.message) return;
+            if (msg.key.fromMe) return; // Evita responderse a sí mismo
 
+            const remite = msg.key.remoteJid;
+
+            // Extracción de texto sin importar el formato de origen
+            const textoRecibido = 
+                msg.message.conversation || 
+                msg.message.extendedTextMessage?.text || 
+                msg.message.imageMessage?.caption || 
+                '';
+
+            const opcion = textoRecibido.trim().toLowerCase();
             console.log(`💬 Mensaje recibido de [${remite}]: "${textoRecibido}"`);
 
-            const menuPrincipal = `✨ *¡Bienvenido al Parque Temático Saqsayki!* ✨\n\n¿En qué te puedo ayudar hoy? Por favor, elige una opción enviando solo el *número* correspondiente:\n\n*1.* 🕒 Horarios y Política de Mascotas\n*3.* 🎁 Paquetes Promocionales\n*4.* 📍 Ubicación en Google Maps`;
+            // --- DISEÑO DE LOS MENSAJES AUTOMÁTICOS ---
+            const menuPrincipal = `✨ *¡Bienvenido(a) al Parque Saqsayqui de Juegos Extremos!* ✨\n\nNos alegra recibir su mensaje. Somos un espacio dedicado a la diversión, la aventura y las experiencias inolvidables para toda la familia.\n\nPor favor, indíquenos cómo podemos ayudarle enviando solo el *número* de la opción:\n\n1️⃣ *HORARIOS Y INGRESO*\n2️⃣ *PRECIOS UNITARIOS DE JUEGOS*\n3️⃣ *PAQUETES PROMOCIONALES*\n4️⃣ *CÓMO LLEGAR*\n5️⃣ *PLATOS A LA CARTA*\n\n🐾 *Mascotas:* ¡Somos Pet Friendly! Trae a tus engreídos con correa.`;
 
             if (opcion === '1') {
-                await sock.sendMessage(remite, { text: `🕒 *Horarios de Atención:*\nLunes a Domingo y Feriados de 9:00 AM a 5:30 PM.\n\n🐾 *Política de Mascotas:*\n¡Somos 100% Pet Friendly! Tus engreídos de cuatro patas son bienvenidos con correa.` });
+                const msgHorarios = `🗓️ *Nuestro horario de atención:* \nLunes a domingo (incluyendo feriados)\n⏰ De *9:30 a.m. a 5:30 p.m.*\n\n🏞️ *COSTO DE INGRESO (Incluye miradores y puente acuático):*\n👉 Adultos: *S/ 7.00*\n👉 Niños: *S/ 4.00*\n\n📸 *Atractivos incluidos que podrás visitar:*\n* Mirador de la *mano gigante del Inca*\n* *Bosque encantado de los duendes*\n* Mirador de la *mano de choclo de oro*\n* *Trilogía andina*\n* ¡Y muchos más miradores hermosos!`;
+                await sock.sendMessage(remite, { text: msgHorarios });
+
+            } else if (opcion === '2') {
+                const msgPrecios = `💰 *PRECIOS UNITARIOS DE JUEGOS*\n\n🌊 *JUEGOS ACUÁTICOS:*\n• *Caminata en línea* – S/ 5.00\n• *Puente acuático* – S/ 5.00\n• *Tirolesa acuática* – S/ 8.00\n• *Puente aéreo* – S/ 8.00\n\n⛰️ *JUEGOS DE ALTURA:*\n• *Columpio extremo “Vuelo del Cóndor”* (25 m) – S/ 20.00\n• *Circuito de 21 obstáculos extremos* – S/ 20.00`;
+                await sock.sendMessage(remite, { text: msgPrecios });
+
             } else if (opcion === '3') {
-                await sock.sendMessage(remite, { text: `🎁 *Paquetes Promocionales Saqsayki:*\n\n1️⃣ *Paquete Familiar:* Ingreso para 4 personas + almuerzos tradicionales.\n2️⃣ *Paquete Aventurero:* Ingreso general + guiado especializado.\n\n_Escríbenos cuántas personas son para cotizar._` });
+                const msgPaquetes = `🎒 *PAQUETES PROMOCIONALES*\nPrecios por persona diseñados para disfrutar al máximo:\n\n🔹 *PAQUETE 1 – S/ 25.00*\n• Entrada al parque (miradores)\n• Puente acuático\n• Caminata en línea\n• Tirolesa acuática\n• Puente aéreo\n\n🔹 *PAQUETE 2 – S/ 35.00*\n• Entrada al parque (miradores)\n• Columpio extremo\n• Circuito de 21 obstáculos\n• Puente acuático\n\n🔹 *PAQUETE 3 – S/ 45.00 – EXPERIENCIA COMPLETA*\n• Entrada al parque (miradores)\n• Columpio extremo (25 m)\n• Circuito de 21 obstáculos\n• Tirolesa acuática\n• Caminata en línea\n• Puente aéreo\n• Puente acuático`;
+                await sock.sendMessage(remite, { text: msgPaquetes });
+
             } else if (opcion === '4') {
-                await sock.sendMessage(remite, { text: `📍 *Nuestra Ubicación:*\nHaz clic aquí para llegar con Google Maps:\n\nhttps://maps.google.com/?q=-16.4000,-71.5000` });
+                const msgLlegar = `📍 *CÓMO LLEGAR A SAQSAYKI*\n\nHaz clic en el siguiente enlace para ver nuestra ubicación exacta y trazar tu ruta en Google Maps:\n🗺️ https://maps.google.com/?q=-16.4000,-71.5000 \n\n🚕 *Servicio de Taxi de Confianza:*\nSi necesitas transporte seguro para visitarnos, puedes llamar a:\n📞 *926050769* o *991972382*`;
+                await sock.sendMessage(remite, { text: msgLlegar });
+
+            } else if (opcion === '5') {
+                const msgComida = `🍽️ *PLATOS A LA CARTA (Nuestra Quinta Restaurante)*\n\n• Cuy al horno entero — S/ 60\n• Trucha frita — S/ 25\n• Chicharrón de cerdo — S/ 25\n• Chuleta de cerdo — S/ 25\n• Pollo al horno — S/ 25\n\n📝 *Información sobre Reservas:*\nSe realizan reservas anticipadas con los platos de comida. Para asegurar tus platos o solicitar más informes, contáctanos directamente aquí:\n📞 *983 838 681*`;
+                await sock.sendMessage(remite, { text: msgComida });
+
             } else {
+                // Si el usuario escribe cualquier otra cosa, se le envía el menú principal
                 await sock.sendMessage(remite, { text: menuPrincipal });
             }
+            
+        } catch (error) {
+            console.error('❌ Error interno procesando el mensaje recibido:', error);
         }
     });
 }
 
-// Inicializar el bot de WhatsApp
+// Inicializar el bot de WhatsApp por primera vez
 iniciarBot();
 
-// --- PANEL WEB (Reemplaza el texto plano por interfaz gráfica) ---
+// --- PANEL WEB INTERFAZ ---
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -115,10 +152,12 @@ app.get('/', (req, res) => {
                 .btn { display: inline-block; padding: 10px 20px; background-color: #25d366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
             </style>
             <script>
-                // Auto-refresca el navegador cada 8 segundos para mostrar el código o el estado actualizado
+                // Recarga automática cada 8 segundos solo si hay un QR visible para escanear
+                ${qrCodeUrl ? `
                 setInterval(() => {
                     window.location.reload();
                 }, 8000);
+                ` : ''}
             </script>
         </head>
         <body>
@@ -130,7 +169,7 @@ app.get('/', (req, res) => {
                     <p>Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo:</p>
                     <img src="${qrCodeUrl}" alt="Código QR de WhatsApp" />
                 ` : `
-                    <p>Si el bot dice que está en línea, puedes cerrar esta ventana con total tranquilidad.</p>
+                    <p>✅ El sistema está activo y protegiendo tu sesión de forma permanente.</p>
                 `}
                 
                 <br>
