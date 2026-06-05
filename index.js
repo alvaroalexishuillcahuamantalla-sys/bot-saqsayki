@@ -97,7 +97,7 @@ async function iniciarBot() {
             console.log(`💬 Mensaje recibido de [${remite}]: "${textoRecibido}"`);
 
             // --- DISEÑO DE LOS MENSAJES AUTOMÁTICOS ---
-            const menuPrincipal = `✨ *¡Bienvenido(a) al Parque Saqsayqui de Juegos Extremos!* ✨\n\nNos alegra recibir su mensaje. Somos un espacio dedicado a la diversión, la aventura y las experiencias inolvidables para toda la familia.\n\nPor favor, indíquenos cómo podemos ayudarle enviando solo el *número* de la opción:\n\n1️⃣ *HORARIOS Y INGRESO*\n2️⃣ *PRECIOS UNITARIOS DE JUEGOS*\n3️⃣ *PAQUETES PROMOCIONALES*\n4️⃣ *CÓMO LLEGAR*\n5️⃣ *PLATOS A LA CARTA*\n\n🐾 *Mascotas:* ¡Somos Pet Friendly! Trae a tus engreídos con correa.`;
+            const menuPrincipal = `✨ *¡Bienvenido(a) al Parque Saqsayqui de Juegos Extremos!* ✨\n\nNos alegra recibir su mensaje. Somos un espacio dedicado a la diversión, la aventura y las experiencias inolvidables para toda la familia.\n\nPor favor, indíquenos cómo podemos ayudarle enviando solo el *número* de la opción:\n\n1️⃣ *HORARIOS Y INGRESO*\n2️⃣ *PRECIOS UNITARIOS DE JUEGOS*\n3️⃣ *PAQUETES PROMOCIONALES*\n4️⃣ *CÓMO LLEGAR*\n5️⃣ *PLATOS A LA CARTA*`;
 
             if (opcion === '1') {
                 const msgHorarios = `🗓️ *Nuestro horario de atención:* \nLunes a domingo (incluyendo feriados)\n⏰ De *9:30 a.m. a 5:30 p.m.*\n\n🏞️ *COSTO DE INGRESO (Incluye miradores y puente acuático):*\n👉 Adultos: *S/ 7.00*\n👉 Niños: *S/ 4.00*\n\n📸 *Atractivos incluidos que podrás visitar:*\n* Mirador de la *mano gigante del Inca*\n* *Bosque encantado de los duendes*\n* Mirador de la *mano de choclo de oro*\n* *Trilogía andina*\n* ¡Y muchos más miradores hermosos!`;
@@ -116,7 +116,7 @@ async function iniciarBot() {
                 await sock.sendMessage(remite, { text: msgLlegar });
 
             } else if (opcion === '5') {
-                const msgComida = `🍽️ *PLATOS A LA CARTA (Nuestra Quinta Restaurante)*\n\n• Cuy al horno entero — S/ 60\n• Trucha frita — S/ 25\n• Chicharrón de cerdo — S/ 25\n• Chuleta de cerdo — S/ 25\n• Pollo al horno — S/ 25\n\n📝 *Información sobre Reservas:*\nSe realizan reservas anticipadas con los platos de comida. Para asegurar tus platos o solicitar más informes, contáctanos directamente aquí:\n📞 *983 838 681*`;
+                const msgComida = `🍽️ *PLATOS A LA CARTA (Nuestra Quinta Restaurante)*\n\n• Cuy al horno entero — S/ 60\n• Trucha frita — S/ 25\n• Chicharrón de cerdo — S/ 25\n• Chuleta de cerdo — S/ 25\n• Pollo al horno — S/ 25`;
                 await sock.sendMessage(remite, { text: msgComida });
 
             } else {
