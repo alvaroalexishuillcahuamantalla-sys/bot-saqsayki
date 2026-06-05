@@ -1,5 +1,4 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
 const express = require('express');
 const pino = require('pino');
 
@@ -19,52 +18,61 @@ app.listen(PORT, () => {
 async function iniciarBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sesion_whatsapp');
 
-    // 🌟 CLAVE: Obtener dinámicamente la última versión de WhatsApp Web para evitar el error 405
-    let version = [2, 3000, 1015901307]; // Versión de respaldo
+    let version = [2, 3000, 1015901307];
     try {
         const checkVersion = await fetchLatestBaileysVersion();
         if (checkVersion && checkVersion.version) {
             version = checkVersion.version;
-            console.log(`💻 Conectando con versión de WhatsApp Web: ${version.join('.')}`);
         }
     } catch (err) {
-        console.log('⚠️ No se pudo obtener la última versión en línea, usando versión de respaldo.');
+        console.log('⚠️ Usando versión de respaldo.');
     }
 
     const sock = makeWASocket({
         auth: state,
-        version: version, // 🌟 Aplicamos la versión aquí
+        version: version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: false,
+        printQRInTerminal: false, // 🌟 Apagamos el QR roto para siempre
         browser: ['Ubuntu', 'Chrome', '20.0.04'] 
     });
+
+    // 🌟 NUEVO MÉTODO: Código de vinculación por texto
+    if (!sock.authState.creds.registered) {
+        setTimeout(async () => {
+            try {
+                // Configurado con tu número de la captura previa: código 51 + número
+                const numeroTelefono = "51983838681"; 
+                const codigo = await sock.requestPairingCode(numeroTelefono);
+                
+                console.log('\n==================================================');
+                console.log(`🔑 TU CÓDIGO DE VINCULACIÓN ES: ${codigo}`);
+                console.log('==================================================');
+                console.log('Pasos en tu celular:');
+                console.log('1. Ve a WhatsApp > Dispositivos vinculados > Vincular un dispositivo.');
+                console.log('2. En la pantalla donde se abre la cámara, abajo dale clic a:');
+                console.log('   "Vincular con el número de teléfono".');
+                console.log(`3. Escribe este código que ves aquí arriba: ${codigo}\n`);
+            } catch (error) {
+                console.log('❌ Error al generar el código de texto:', error);
+            }
+        }, 6000); // Espera 6 segundos a que conecte bien antes de pedir el código
+    }
 
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-            console.log('\n==================================================');
-            console.log('▲ ESCANEA ESTE CÓDIGO QR DESDE TU WHATSAPP ▲\n');
-            qrcode.generate(qr, { small: true });
-            console.log('\nPasos: Ve a WhatsApp > Dispositivos vinculados > Vincular un dispositivo.');
-            console.log('==================================================\n');
-        }
+        const { connection, lastDisconnect } = update;
 
         if (connection === 'close') {
             const codigoError = lastDisconnect?.error?.output?.statusCode;
-            const razon = lastDisconnect?.error?.message || 'Desconocida';
             const debeReconectar = codigoError !== DisconnectReason.loggedOut;
             
-            console.log(`❌ Conexión cerrada. Código: ${codigoError} | Razón: ${razon}`);
-            
+            console.log(`❌ Conexión cerrada. Código: ${codigoError}`);
             if (debeReconectar) {
-                console.log('🔄 Esperando 7 segundos para intentar reconectar...');
                 setTimeout(() => iniciarBot(), 7000); 
             }
         } else if (connection === 'open') {
-            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está listo. 🎉\n');
+            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está listo para responder. 🎉\n');
         }
     });
 
