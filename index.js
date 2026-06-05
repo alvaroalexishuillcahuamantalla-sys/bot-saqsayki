@@ -1,100 +1,106 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const express = require('express');
-const pino = require('pino');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const port = process.env.PORT || 3000;
+
+// Variables globales para guardar el estado y la URL del QR
+let qrCodeUrl = '';
+let botStatus = 'Iniciando el bot, por favor espera...';
+
+// Configuración del cliente de WhatsApp con los argumentos necesarios para Render
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ]
+    }
+});
+
+// Evento cuando se genera el código QR
+client.on('qr', (qr) => {
+    // Usamos la API gratuita de qrserver para convertir el texto en una imagen real
+    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+    botStatus = '¡Código QR listo! Escanéalo con tu teléfono en la sección de Dispositivos Vinculados.';
+    console.log('Nuevo código QR generado y expuesto en la web.');
+});
+
+// Evento cuando el bot ya se conectó con éxito
+client.on('ready', () => {
+    qrCodeUrl = ''; // Limpiamos el QR ya que no se necesita
+    botStatus = '🚀 ¡Bot Saqsayki conectado y funcionando activamente!';
+    console.log('¡El cliente de WhatsApp está listo!');
+});
+
+client.on('authenticated', () => {
+    console.log('Autenticación exitosa.');
+});
+
+client.on('auth_failure', (msg) => {
+    botStatus = 'Error de autenticación, reiniciando...';
+    console.error('Fallo en la autenticación:', msg);
+});
+
+// Inicializar el bot de WhatsApp
+client.initialize();
+
+// --- CONFIGURACIÓN DEL SERVIDOR WEB ---
 
 app.get('/', (req, res) => {
-    res.send('🤖 Bot de Saqsayki - Esperando código limpio.');
-});
-
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor web activo en puerto ${PORT}`);
-});
-
-let yaSolicitoCodigo = false;
-
-async function iniciarBot() {
-    // 🌟 CLAVE: Cambiamos el nombre a 'sesion_saqsayki' para resetear los archivos corruptos
-    const { state, saveCreds } = await useMultiFileAuthState('sesion_saqsayki');
-
-    let version = [2, 3000, 1015901307];
-    try {
-        const checkVersion = await fetchLatestBaileysVersion();
-        if (checkVersion && checkVersion.version) {
-            version = checkVersion.version;
-        }
-    } catch (err) {
-        console.log('⚠️ Usando versión de respaldo.');
-    }
-
-    const sock = makeWASocket({
-        auth: state,
-        version: version,
-        logger: pino({ level: 'silent' }),
-        printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'] 
-    });
-
-    if (!sock.authState.creds.registered && !yaSolicitoCodigo) {
-        yaSolicitoCodigo = true;
-        setTimeout(async () => {
-            try {
-                const numeroTelefono = "51983838681"; 
-                const codigo = await sock.requestPairingCode(numeroTelefono);
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Bot Saqsayki - Panel de Control</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 40px; color: #333; }
+                .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; max-width: 450px; width: 100%; }
+                h1 { color: #075e54; margin-top: 0; }
+                .status { font-size: 1.1em; margin: 20px 0; padding: 10px; background-color: #e3f2fd; border-radius: 8px; color: #0d47a1; font-weight: 500; }
+                img { margin-top: 15px; border: 4px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.15); border-radius: 8px; }
+                .footer { margin-top: 25px; font-size: 0.85em; color: #777; }
+                .btn { display: inline-block; padding: 10px 20px; background-color: #25d366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
+            </style>
+            <script>
+                // Auto-refresca la página cada 8 segundos para actualizar el estado del QR sin intervención del usuario
+                setInterval(() => {
+                    window.location.reload();
+                }, 8000);
+            </script>
+        </head>
+        <body>
+            <div class="card">
+                <h1>Bot Saqsayki 🤖</h1>
+                <div class="status">${botStatus}</div>
                 
-                console.log('\n==================================================');
-                console.log(`🔑 TU CÓDIGO DE VINCULACIÓN ACTIVO ES: ${codigo}`);
-                console.log('==================================================');
-                console.log('Escríbelo rápido en tu celular en Dispositivos Vinculados.');
-                console.log('==================================================\n');
-            } catch (error) {
-                console.log('❌ Ocurrió un parpadeo al generar el código, reintentando...');
-                yaSolicitoCodigo = false;
-            }
-        }, 10000); // Le damos 10 segundos completos para que se estabilice la nueva sesión
-    }
+                ${qrCodeUrl ? `
+                    <p>Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo:</p>
+                    <img src="${qrCodeUrl}" alt="Código QR de WhatsApp" />
+                ` : `
+                    <p>Si ya escaneaste el código, tu bot está en línea de forma segura. No cierres la aplicación en Render.</p>
+                `}
+                
+                <br>
+                <a href="/" class="btn">Forzar Actualización</a>
+                <div class="footer">La página se actualiza automáticamente cada 8 segundos.</div>
+            </div>
+        </body>
+        </html>
+    `);
+});
 
-    sock.ev.on('creds.update', saveCreds);
-
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-
-        if (connection === 'close') {
-            const codigoError = lastDisconnect?.error?.output?.statusCode;
-            console.log(`❌ Conexión pausada (Código: ${codigoError}).`);
-            
-            if (codigoError !== DisconnectReason.loggedOut) {
-                yaSolicitoCodigo = false; 
-                console.log('🔄 Reestabilizando sistema en 8 segundos...');
-                setTimeout(() => iniciarBot(), 8000); 
-            }
-        } else if (connection === 'open') {
-            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está en línea. 🎉\n');
-        }
-    });
-
-    sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0];
-        if (!msg.key.fromMe && m.type === 'notify') {
-            const remite = msg.key.remoteJid;
-            const textoRecibido = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-            const opcion = textoRecibido.trim().toLowerCase();
-
-            const menuPrincipal = `✨ *¡Bienvenido al Parque Temático Saqsayki!* ✨\n\n¿En qué te puedo ayudar hoy? Elige una opción enviando el *número*:\n\n*1.* 🕒 Horarios y Mascotas\n*3.* 🎁 Paquetes Promocionales\n*4.* 📍 Ubicación`;
-
-            if (opcion === '1') {
-                await sock.sendMessage(remite, { text: `🕒 *Horarios:*\nLunes a Domingo de 9:00 AM a 5:30 PM.\n\n🐾 *Mascotas:*\n¡Somos Pet Friendly! (Con correa).` });
-            } else if (opcion === '3') {
-                await sock.sendMessage(remite, { text: `🎁 *Paquetes:*\n1️⃣ Familiar (4 personas + almuerzo).\n2️⃣ Aventurero (Ingreso + guiado).` });
-            } else if (opcion === '4') {
-                await sock.sendMessage(remite, { text: `📍 *Ubicación:*\nhttps://maps.google.com/?q=-16.4000,-71.5000` });
-            } else {
-                await sock.sendMessage(remite, { text: menuPrincipal });
-            }
-        }
-    });
-}
-
-iniciarBot();
+// Escuchar en el puerto que Render nos asigne
+app.listen(port, () => {
+    console.log(`Servidor web corriendo en el puerto ${port}`);
+});
