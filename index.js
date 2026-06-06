@@ -130,23 +130,23 @@ Seleccione una opción:
 para volver al menú principal.
 `;
 
-    if (
-        opcion === 'hola' ||
-        opcion === 'buenas' ||
-        opcion === 'buenos dias' ||
-        opcion === 'buenas tardes' ||
-        opcion === 'buenas noches' ||
-        opcion === 'info' ||
-        opcion === 'informacion' ||
-        opcion === 'menu' ||
-        opcion.includes('horario') ||
-        opcion.includes('precio') ||
-        opcion.includes('paquete') ||
-        opcion.includes('ubicacion') ||
-        opcion.includes('ubicación')
-        opcion.includes('donde') ||
-        opcion.includes('dónde')
-        opcion.includes('restaurante')
+       if (
+    opcion === 'hola' ||
+    opcion === 'buenas' ||
+    opcion === 'buenos dias' ||
+    opcion === 'buenas tardes' ||
+    opcion === 'buenas noches' ||
+    opcion === 'info' ||
+    opcion === 'informacion' ||
+    opcion === 'menu' ||
+    opcion.includes('horario') ||
+    opcion.includes('precio') ||
+    opcion.includes('paquete') ||
+    opcion.includes('ubicacion') ||
+    opcion.includes('ubicación') ||
+    opcion.includes('donde') ||
+    opcion.includes('dónde') ||
+    opcion.includes('restaurante')
 ) {
 
     await esperar(1000);
