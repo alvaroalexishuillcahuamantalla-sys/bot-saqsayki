@@ -2,7 +2,7 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const express = require('express');
 const pino = require('pino');
 
-// Servidor HTTP para Render y Panel Web
+// Servidor HTTP
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -14,28 +14,55 @@ let botNumber = '';
 
 const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Función para enviar menú con botones interactivos (tipo REPLY BUTTON)
+// ✅ NUEVA FUNCIÓN: Enviar menú con botones interactivos (versión actualizada)
 async function enviarMenuConBotones(remite) {
-    const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
+    const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨\n\n🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.\n\n*Seleccione una opción:*`;
 
-🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
-
-*Seleccione una opción presionando los botones:*`;
-
-    const botonesMensaje = {
+    // Estructura CORRECTA para botones en Baileys actual [citation:4][citation:10]
+    const interactiveMessage = {
         text: menuTexto,
         footer: '📍 Parque Saqsayki - Tu aventura comienza aquí',
-        viewOnce: true,
-        buttons: [
-            { buttonId: 'opcion_1', buttonText: { displayText: '🕒 Horarios e ingreso' }, type: 1 },
-            { buttonId: 'opcion_2', buttonText: { displayText: '💰 Precios unitarios' }, type: 1 },
-            { buttonId: 'opcion_3', buttonText: { displayText: '🎒 Paquetes promocionales' }, type: 1 },
-            { buttonId: 'opcion_4', buttonText: { displayText: '📍 Cómo llegar' }, type: 1 },
-            { buttonId: 'opcion_5', buttonText: { displayText: '🍽️ Restaurante' }, type: 1 }
+        title: '🎯 MENÚ PRINCIPAL',
+        interactiveButtons: [
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🕒 Horarios e ingreso",
+                    id: "opcion_1"
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "💰 Precios unitarios",
+                    id: "opcion_2"
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🎒 Paquetes promocionales",
+                    id: "opcion_3"
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "📍 Cómo llegar",
+                    id: "opcion_4"
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🍽️ Restaurante",
+                    id: "opcion_5"
+                })
+            }
         ]
     };
 
-    await sock.sendMessage(remite, botonesMensaje);
+    await sock.sendMessage(remite, interactiveMessage);
 }
 
 // Función para enviar información específica
@@ -43,7 +70,6 @@ async function enviarInformacion(remite, opcion) {
     await esperar(1000);
     
     let texto = '';
-    let subBotones = null;
     
     switch(opcion) {
         case '1':
@@ -135,38 +161,24 @@ Para más información comuníquese con nuestro equipo.`;
     
     await sock.sendMessage(remite, { text: texto });
     
-    // Después de enviar la información, pregunto si quiere volver al menú
+    // Preguntar si quiere volver al menú
     await esperar(1500);
     
-    const botonVolver = {
-        text: '¿Deseas volver al menú principal?',
-        buttons: [
-            { buttonId: 'volver_menu', buttonText: { displayText: '🔙 Volver al menú' }, type: 1 }
+    const menuVolver = {
+        text: '🔙 ¿Deseas volver al menú principal?',
+        footer: 'Parque Saqsayki',
+        interactiveButtons: [
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🔙 Volver al menú",
+                    id: "volver_menu"
+                })
+            }
         ]
     };
     
-    await sock.sendMessage(remite, botonVolver);
-}
-
-// Función para enviar solo el texto del menú (sin botones - versión simple)
-async function enviarMenuTexto(remite) {
-    const menuTexto = `✨ *BIENVENIDO(A) AL PARQUE TEMÁTICO SAQSAYKI* ✨
-
-🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
-
-*Responde con el número de tu opción:*
-
-1️⃣ Horarios e ingreso
-2️⃣ Precios unitarios de juegos
-3️⃣ Paquetes promocionales
-4️⃣ Cómo llegar
-5️⃣ Restaurante
-
-📌 *Comandos disponibles:*
-menu - Ver este menú
-info - Información general`;
-
-    await sock.sendMessage(remite, { text: menuTexto });
+    await sock.sendMessage(remite, menuVolver);
 }
 
 // Lógica principal del Bot
@@ -208,7 +220,6 @@ async function iniciarBot() {
             botStatus = '✅ Bot conectado y funcionando correctamente';
             console.log('🎉 Bot conectado exitosamente');
             
-            // Obtener número del bot
             if (sock.user) {
                 botNumber = sock.user.id;
                 console.log(`🤖 Número del bot: ${botNumber}`);
@@ -219,7 +230,7 @@ async function iniciarBot() {
             const codigoError = lastDisconnect?.error?.output?.statusCode;
             const debeReconectar = codigoError !== DisconnectReason.loggedOut;
             
-            console.log(`❌ Conexión cerrada. Reconectar: ${debeReconectar}`);
+            console.log(`❌ Conexión cerrada.`);
             qrCodeUrl = '';
             
             if (debeReconectar) {
@@ -242,17 +253,27 @@ async function iniciarBot() {
             const remite = msg.key.remoteJid;
             const esGrupo = remite.endsWith('@g.us');
             
-            // Obtener texto del mensaje o ID del botón presionado
+            // Obtener opción (texto o botón)
             let opcion = '';
             let textoOriginal = '';
             
-            // Si es respuesta de botón
-            if (msg.message.buttonsResponseMessage) {
+            // Detectar si es respuesta de un botón interactivo
+            if (msg.message.interactiveResponseMessage) {
+                const interactiveResponse = msg.message.interactiveResponseMessage;
+                if (interactiveResponse.nativeFlowResponseMessage) {
+                    const params = JSON.parse(interactiveResponse.nativeFlowResponseMessage.paramsJson || '{}');
+                    opcion = params.id || '';
+                    textoOriginal = opcion;
+                    console.log(`🔘 Botón presionado: ${opcion}`);
+                }
+            }
+            // Detectar botón quick_reply específico
+            else if (msg.message.buttonsResponseMessage) {
                 opcion = msg.message.buttonsResponseMessage.selectedButtonId || '';
                 textoOriginal = opcion;
                 console.log(`🔘 Botón presionado: ${opcion}`);
-            } 
-            // Si es mensaje de texto normal
+            }
+            // Mensaje de texto normal
             else {
                 textoOriginal = msg.message.conversation || 
                                msg.message.extendedTextMessage?.text || 
@@ -276,14 +297,12 @@ async function iniciarBot() {
             
             // === MANEJO DE GRUPOS ===
             if (esGrupo) {
-                // Solo responder si mencionan al bot o escriben comandos específicos
                 const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5', 'opcion_1', 'opcion_2', 'opcion_3', 'opcion_4', 'opcion_5', 'volver_menu'];
                 const esComando = comandosPermitidos.includes(opcion);
                 
                 if (mencionaBot || esComando) {
                     console.log(`📢 Respondiendo en grupo`);
                     
-                    // Responder según la opción
                     if (opcion === 'menu' || opcion === 'hola' || opcion === 'info') {
                         await enviarMenuConBotones(remite);
                     } 
@@ -321,13 +340,12 @@ async function iniciarBot() {
                         await enviarInformacion(remite, '5');
                     }
                 }
-                return; // Salir del procesamiento de grupos
+                return;
             }
             
             // === MANEJO DE CHAT PRIVADO ===
             console.log(`💬 Respondiendo en privado`);
             
-            // Procesar según la opción
             if (opcion === '1' || opcion === 'opcion_1') {
                 await enviarInformacion(remite, '1');
             }
@@ -366,7 +384,6 @@ async function iniciarBot() {
                 await enviarInformacion(remite, '5');
             }
             else {
-                // Si no reconoce el comando, muestra el menú
                 await enviarMenuConBotones(remite);
             }
             
@@ -404,8 +421,8 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo</p>'}
-                <div class="footer">Bot con botones interactivos</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo con botones interactivos</p>'}
+                <div class="footer">Los botones aparecerán debajo del mensaje</div>
             </div>
         </body>
         </html>
