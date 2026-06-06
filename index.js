@@ -6,65 +6,167 @@ const pino = require('pino');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Variables globales para controlar el estado y el QR en la web
+// Variables globales
 let qrCodeUrl = '';
 let botStatus = 'Iniciando el bot, por favor espera...';
 let sock = null;
-
-// Número del bot (se actualizará cuando conecte)
 let botNumber = '';
 
-// Hace que el bot responda de forma más natural
-const esperar = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
+const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Función para enviar mensaje con botones interactivos
-async function enviarMenuConBotones(remite, esGrupo = false) {
-    const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨\n\n🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.\n\nSeleccione una opción:`;
+// Función para enviar menú con botones interactivos (tipo REPLY BUTTON)
+async function enviarMenuConBotones(remite) {
+    const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
 
-    const botones = [
-        { buttonId: 'opcion_1', buttonText: { displayText: '🕒 Horarios e ingreso' }, type: 1 },
-        { buttonId: 'opcion_2', buttonText: { displayText: '💰 Precios unitarios' }, type: 1 },
-        { buttonId: 'opcion_3', buttonText: { displayText: '🎒 Paquetes promocionales' }, type: 1 },
-        { buttonId: 'opcion_4', buttonText: { displayText: '📍 Cómo llegar' }, type: 1 },
-        { buttonId: 'opcion_5', buttonText: { displayText: '🍽️ Restaurante' }, type: 1 }
-    ];
+🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
 
-    await sock.sendMessage(remite, {
+*Seleccione una opción presionando los botones:*`;
+
+    const botonesMensaje = {
         text: menuTexto,
-        buttons: botones,
-        headerType: 1
-    });
+        footer: '📍 Parque Saqsayki - Tu aventura comienza aquí',
+        viewOnce: true,
+        buttons: [
+            { buttonId: 'opcion_1', buttonText: { displayText: '🕒 Horarios e ingreso' }, type: 1 },
+            { buttonId: 'opcion_2', buttonText: { displayText: '💰 Precios unitarios' }, type: 1 },
+            { buttonId: 'opcion_3', buttonText: { displayText: '🎒 Paquetes promocionales' }, type: 1 },
+            { buttonId: 'opcion_4', buttonText: { displayText: '📍 Cómo llegar' }, type: 1 },
+            { buttonId: 'opcion_5', buttonText: { displayText: '🍽️ Restaurante' }, type: 1 }
+        ]
+    };
+
+    await sock.sendMessage(remite, botonesMensaje);
 }
 
-// Función para enviar información específica según opción
+// Función para enviar información específica
 async function enviarInformacion(remite, opcion) {
     await esperar(1000);
     
     let texto = '';
+    let subBotones = null;
     
     switch(opcion) {
         case '1':
-            texto = `🕒 *HORARIOS E INGRESO*\n\n📅 Lunes a domingo (incluyendo feriados)\n\n⏰ 9:30 a.m. a 5:30 p.m.\n\n🎟️ Ingreso:\n\n👨 Adultos: S/ 7.00\n👦 Niños: S/ 4.00\n\nIncluye:\n✅ Mano Gigante del Inca\n✅ Bosque Encantado de los Duendes\n✅ Mano de Choclo de Oro\n✅ Trilogía Andina\n✅ Diversos miradores turísticos`;
+            texto = `🕒 *HORARIOS E INGRESO*
+
+📅 Lunes a domingo (incluyendo feriados)
+
+⏰ 9:30 a.m. a 5:30 p.m.
+
+🎟️ *Ingreso:*
+👨 Adultos: S/ 7.00
+👦 Niños: S/ 4.00
+
+*Incluye:*
+✅ Mano Gigante del Inca
+✅ Bosque Encantado de los Duendes
+✅ Mano de Choclo de Oro
+✅ Trilogía Andina
+✅ Diversos miradores turísticos`;
             break;
         case '2':
-            texto = `💰 *PRECIOS UNITARIOS DE JUEGOS*\n\n🌊 Juegos Acuáticos\n• Caminata en línea — S/ 5.00\n• Puente acuático — S/ 5.00\n• Tirolesa acuática — S/ 8.00\n• Puente aéreo — S/ 8.00\n\n━━━━━━━━━━━━━━━\n\n⛰️ Juegos de Altura\n• Columpio Extremo "Vuelo del Cóndor" — S/ 20.00\n• Circuito de 21 obstáculos extremos — S/ 20.00`;
+            texto = `💰 *PRECIOS UNITARIOS DE JUEGOS*
+
+🌊 *Juegos Acuáticos*
+• Caminata en línea — S/ 5.00
+• Puente acuático — S/ 5.00
+• Tirolesa acuática — S/ 8.00
+• Puente aéreo — S/ 8.00
+
+━━━━━━━━━━━━━━━
+
+⛰️ *Juegos de Altura*
+• Columpio Extremo "Vuelo del Cóndor" — S/ 20.00
+• Circuito de 21 obstáculos extremos — S/ 20.00`;
             break;
         case '3':
-            texto = `🎒 *PAQUETES PROMOCIONALES*\n\n💦 *PAQUETE ACUÁTICO* — S/ 25.00\n✅ Entrada al parque\n✅ Puente acuático\n✅ Caminata en línea\n✅ Tirolesa acuática\n✅ Puente aéreo\n\n━━━━━━━━━━━━━━━\n\n🧗 *PAQUETE AVENTURERO* — S/ 35.00\n✅ Entrada al parque\n✅ Columpio extremo\n✅ Circuito de 21 obstáculos\n✅ Puente acuático\n\n━━━━━━━━━━━━━━━\n\n🔥 *PAQUETE FULL* — S/ 45.00\n✅ Entrada al parque\n✅ Columpio extremo\n✅ Circuito de 21 obstáculos\n✅ Tirolesa acuática\n✅ Caminata en línea\n✅ Puente aéreo\n✅ Puente acuático`;
+            texto = `🎒 *PAQUETES PROMOCIONALES*
+
+💦 *PAQUETE ACUÁTICO* — S/ 25.00
+✅ Entrada al parque
+✅ Puente acuático
+✅ Caminata en línea
+✅ Tirolesa acuática
+✅ Puente aéreo
+
+━━━━━━━━━━━━━━━
+
+🧗 *PAQUETE AVENTURERO* — S/ 35.00
+✅ Entrada al parque
+✅ Columpio extremo
+✅ Circuito de 21 obstáculos
+✅ Puente acuático
+
+━━━━━━━━━━━━━━━
+
+🔥 *PAQUETE FULL* — S/ 45.00
+✅ Entrada al parque
+✅ Columpio extremo
+✅ Circuito de 21 obstáculos
+✅ Tirolesa acuática
+✅ Caminata en línea
+✅ Puente aéreo
+✅ Puente acuático`;
             break;
         case '4':
-            texto = `📍 *¿CÓMO LLEGAR A SAQSAYKI?*\n\n🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.\n\n🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.\n\n🗺️ Google Maps:\nhttps://maps.google.com/?q=-16.4000,-71.5000\n\n📞 Taxis recomendados:\n926050769\n991972382`;
+            texto = `📍 *¿CÓMO LLEGAR A SAQSAYKI?*
+
+🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
+
+🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
+
+🗺️ *Google Maps:*
+https://maps.google.com/?q=-16.4000,-71.5000
+
+📞 *Taxis recomendados:*
+926050769
+991972382`;
             break;
         case '5':
-            texto = `🍽️ *Restaurante Saqsayki*\n\nMuy pronto podrás visualizar nuestra carta completa.\n\n📌 Solo realizamos reservas para días festivos.\n\nPara más información comuníquese con nuestro equipo.`;
+            texto = `🍽️ *Restaurante Saqsayki*
+
+Muy pronto podrás visualizar nuestra carta completa.
+
+📌 Solo realizamos reservas para días festivos.
+
+Para más información comuníquese con nuestro equipo.`;
             break;
-        default:
-            texto = `✨ *Bienvenido(a) al Parque Temático Saqsayki!* ✨\n\nEscribe *menu* para ver todas las opciones disponibles.`;
     }
     
     await sock.sendMessage(remite, { text: texto });
+    
+    // Después de enviar la información, pregunto si quiere volver al menú
+    await esperar(1500);
+    
+    const botonVolver = {
+        text: '¿Deseas volver al menú principal?',
+        buttons: [
+            { buttonId: 'volver_menu', buttonText: { displayText: '🔙 Volver al menú' }, type: 1 }
+        ]
+    };
+    
+    await sock.sendMessage(remite, botonVolver);
+}
+
+// Función para enviar solo el texto del menú (sin botones - versión simple)
+async function enviarMenuTexto(remite) {
+    const menuTexto = `✨ *BIENVENIDO(A) AL PARQUE TEMÁTICO SAQSAYKI* ✨
+
+🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
+
+*Responde con el número de tu opción:*
+
+1️⃣ Horarios e ingreso
+2️⃣ Precios unitarios de juegos
+3️⃣ Paquetes promocionales
+4️⃣ Cómo llegar
+5️⃣ Restaurante
+
+📌 *Comandos disponibles:*
+menu - Ver este menú
+info - Información general`;
+
+    await sock.sendMessage(remite, { text: menuTexto });
 }
 
 // Lógica principal del Bot
@@ -76,10 +178,10 @@ async function iniciarBot() {
         const checkVersion = await fetchLatestBaileysVersion();
         if (checkVersion && checkVersion.version) {
             version = checkVersion.version;
-            console.log(`💻 Conectando con versión de WhatsApp Web: ${version.join('.')}`);
+            console.log(`💻 Conectando con versión: ${version.join('.')}`);
         }
     } catch (err) {
-        console.log('⚠️ Usando versión de respaldo para WhatsApp Web.');
+        console.log('⚠️ Usando versión de respaldo.');
     }
 
     sock = makeWASocket({
@@ -90,58 +192,46 @@ async function iniciarBot() {
         browser: ['Ubuntu', 'Chrome', '20.0.04'] 
     });
 
-    // Guardar credenciales
     sock.ev.on('creds.update', saveCreds);
     
-    // Obtener el número del bot cuando esté autenticado
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (connection === 'open') {
-            // Obtener el número del bot
-            const authInfo = sock.authState.creds;
-            if (authInfo && authInfo.me) {
-                botNumber = authInfo.me.id;
-                console.log(`🤖 Número del bot: ${botNumber}`);
-            }
-        }
-    });
-
-    // Manejo de estados de la conexión
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
             qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
-            botStatus = '¡Código QR listo! Escanéalo con tu teléfono en WhatsApp > Dispositivos Vinculados.';
-            console.log('\n🔄 Nuevo código QR generado y expuesto en la web de Render.');
+            botStatus = '📱 Escanea el código QR con WhatsApp';
+            console.log('🔄 QR generado');
         }
 
+        if (connection === 'open') {
+            qrCodeUrl = '';
+            botStatus = '✅ Bot conectado y funcionando correctamente';
+            console.log('🎉 Bot conectado exitosamente');
+            
+            // Obtener número del bot
+            if (sock.user) {
+                botNumber = sock.user.id;
+                console.log(`🤖 Número del bot: ${botNumber}`);
+            }
+        }
+        
         if (connection === 'close') {
             const codigoError = lastDisconnect?.error?.output?.statusCode;
-            const razon = lastDisconnect?.error?.message || 'Desconocida';
-            
             const debeReconectar = codigoError !== DisconnectReason.loggedOut;
             
-            console.log(`❌ Conexión cerrada. Código: ${codigoError} | Razón: ${razon}`);
-            qrCodeUrl = ''; 
+            console.log(`❌ Conexión cerrada. Reconectar: ${debeReconectar}`);
+            qrCodeUrl = '';
             
             if (debeReconectar) {
-                botStatus = '🔄 Conexión interrumpida. Intentando reconectar automáticamente...';
-                console.log('🔄 Intentando reconectar en 7 segundos...');
-                setTimeout(() => iniciarBot(), 7000); 
+                botStatus = '🔄 Reconectando...';
+                setTimeout(() => iniciarBot(), 7000);
             } else {
-                botStatus = '❌ Sesión expirada o cerrada por el usuario. Escanea el código QR nuevamente.';
-                console.log('⚠️ La sesión se eliminó permanentemente.');
+                botStatus = '❌ Sesión expirada - Escanea el QR nuevamente';
             }
-        } else if (connection === 'open') {
-            qrCodeUrl = ''; 
-            botStatus = '🎉 ¡CONEXIÓN EXITOSA! El bot de Saqsayki está en línea.';
-            console.log('\n🎉 ¡CONEXIÓN EXITOSA! El bot está listo. 🎉\n');
         }
     });
 
-    // Escucha y respuesta automática de mensajes
+    // Procesar mensajes
     sock.ev.on('messages.upsert', async (m) => {
         try {
             const msg = m.messages[0];
@@ -152,120 +242,113 @@ async function iniciarBot() {
             const remite = msg.key.remoteJid;
             const esGrupo = remite.endsWith('@g.us');
             
-            // Obtener el texto del mensaje
-            let textoRecibido = 
-                msg.message.conversation ||
-                msg.message.extendedTextMessage?.text ||
-                msg.message.buttonsResponseMessage?.selectedButtonId ||
-                msg.message.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                '';
-            
-            // Obtener el ID del botón presionado (si viene de un botón)
+            // Obtener texto del mensaje o ID del botón presionado
             let opcion = '';
+            let textoOriginal = '';
             
             // Si es respuesta de botón
             if (msg.message.buttonsResponseMessage) {
                 opcion = msg.message.buttonsResponseMessage.selectedButtonId || '';
-            } else {
-                opcion = textoRecibido.trim().toLowerCase();
+                textoOriginal = opcion;
+                console.log(`🔘 Botón presionado: ${opcion}`);
+            } 
+            // Si es mensaje de texto normal
+            else {
+                textoOriginal = msg.message.conversation || 
+                               msg.message.extendedTextMessage?.text || 
+                               '';
+                opcion = textoOriginal.trim().toLowerCase();
             }
             
-            console.log(`📩 Mensaje recibido - Grupo: ${esGrupo} - Contenido: ${opcion || textoRecibido.substring(0, 30)}`);
-            
-            // Verificar si el mensaje menciona al bot (para grupos)
+            // Verificar si mencionan al bot en grupos
             let mencionaBot = false;
-            if (esGrupo) {
-                // Verificar si el mensaje tiene menciones
+            if (esGrupo && botNumber) {
                 const mentionedJid = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 mencionaBot = mentionedJid.includes(botNumber);
                 
-                // También verificar si el texto contiene @ o el nombre del bot
-                const textoLower = textoRecibido.toLowerCase();
+                const textoLower = textoOriginal.toLowerCase();
                 if (textoLower.includes('@') || textoLower.includes('bot') || textoLower.includes('saqsayki')) {
                     mencionaBot = true;
                 }
             }
             
+            console.log(`📩 Mensaje - Grupo:${esGrupo} - Opción:${opcion}`);
+            
             // === MANEJO DE GRUPOS ===
             if (esGrupo) {
-                // Solo responder en grupos si:
-                // 1. El mensaje menciona al bot, O
-                // 2. El usuario escribe comandos específicos (menu, hola, etc)
-                
-                const comandosGrupo = ['menu', 'hola', 'info', 'horario', 'precio', 'paquete', 'ubicacion', '1', '2', '3', '4', '5'];
-                const esComando = comandosGrupo.includes(opcion);
+                // Solo responder si mencionan al bot o escriben comandos específicos
+                const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5', 'opcion_1', 'opcion_2', 'opcion_3', 'opcion_4', 'opcion_5', 'volver_menu'];
+                const esComando = comandosPermitidos.includes(opcion);
                 
                 if (mencionaBot || esComando) {
-                    console.log(`📢 Respondiendo en grupo - Menciona: ${mencionaBot}, Comando: ${esComando}`);
+                    console.log(`📢 Respondiendo en grupo`);
                     
+                    // Responder según la opción
                     if (opcion === 'menu' || opcion === 'hola' || opcion === 'info') {
-                        await enviarMenuConBotones(remite, true);
-                    } else if (opcion === '1' || opcion === 'opcion_1') {
+                        await enviarMenuConBotones(remite);
+                    } 
+                    else if (opcion === '1' || opcion === 'opcion_1') {
                         await enviarInformacion(remite, '1');
-                    } else if (opcion === '2' || opcion === 'opcion_2') {
+                    }
+                    else if (opcion === '2' || opcion === 'opcion_2') {
                         await enviarInformacion(remite, '2');
-                    } else if (opcion === '3' || opcion === 'opcion_3') {
+                    }
+                    else if (opcion === '3' || opcion === 'opcion_3') {
                         await enviarInformacion(remite, '3');
-                    } else if (opcion === '4' || opcion === 'opcion_4') {
+                    }
+                    else if (opcion === '4' || opcion === 'opcion_4') {
                         await enviarInformacion(remite, '4');
-                    } else if (opcion === '5' || opcion === 'opcion_5') {
-                        await enviarInformacion(remite, '5');
-                    } else if (opcion.includes('horario')) {
-                        await enviarInformacion(remite, '1');
-                    } else if (opcion.includes('precio')) {
-                        await enviarInformacion(remite, '2');
-                    } else if (opcion.includes('paquete')) {
-                        await enviarInformacion(remite, '3');
-                    } else if (opcion.includes('ubicacion') || opcion.includes('donde') || opcion.includes('llegar')) {
-                        await enviarInformacion(remite, '4');
-                    } else if (opcion.includes('restaurante')) {
+                    }
+                    else if (opcion === '5' || opcion === 'opcion_5') {
                         await enviarInformacion(remite, '5');
                     }
-                } else {
-                    // No responder en grupos si no mencionan al bot
-                    console.log(`⏭️ Ignorando mensaje de grupo (sin mención al bot)`);
+                    else if (opcion === 'volver_menu') {
+                        await enviarMenuConBotones(remite);
+                    }
+                    else if (opcion.includes('horario')) {
+                        await enviarInformacion(remite, '1');
+                    }
+                    else if (opcion.includes('precio')) {
+                        await enviarInformacion(remite, '2');
+                    }
+                    else if (opcion.includes('paquete')) {
+                        await enviarInformacion(remite, '3');
+                    }
+                    else if (opcion.includes('ubicacion') || opcion.includes('llegar')) {
+                        await enviarInformacion(remite, '4');
+                    }
+                    else if (opcion.includes('restaurante')) {
+                        await enviarInformacion(remite, '5');
+                    }
                 }
-                return;
+                return; // Salir del procesamiento de grupos
             }
             
             // === MANEJO DE CHAT PRIVADO ===
-            // Responder a cualquier mensaje en privado
+            console.log(`💬 Respondiendo en privado`);
             
-            // Respuesta para botones
-            if (opcion === 'opcion_1') {
+            // Procesar según la opción
+            if (opcion === '1' || opcion === 'opcion_1') {
                 await enviarInformacion(remite, '1');
-            } else if (opcion === 'opcion_2') {
+            }
+            else if (opcion === '2' || opcion === 'opcion_2') {
                 await enviarInformacion(remite, '2');
-            } else if (opcion === 'opcion_3') {
+            }
+            else if (opcion === '3' || opcion === 'opcion_3') {
                 await enviarInformacion(remite, '3');
-            } else if (opcion === 'opcion_4') {
+            }
+            else if (opcion === '4' || opcion === 'opcion_4') {
                 await enviarInformacion(remite, '4');
-            } else if (opcion === 'opcion_5') {
+            }
+            else if (opcion === '5' || opcion === 'opcion_5') {
                 await enviarInformacion(remite, '5');
             }
-            // Respuesta para comandos de texto
-            else if (opcion === '1') {
-                await enviarInformacion(remite, '1');
-            } else if (opcion === '2') {
-                await enviarInformacion(remite, '2');
-            } else if (opcion === '3') {
-                await enviarInformacion(remite, '3');
-            } else if (opcion === '4') {
-                await enviarInformacion(remite, '4');
-            } else if (opcion === '5') {
-                await enviarInformacion(remite, '5');
-            } 
-            else if (
-                opcion === 'hola' ||
-                opcion === 'buenas' ||
-                opcion === 'buenos dias' ||
-                opcion === 'buenas tardes' ||
-                opcion === 'buenas noches' ||
-                opcion === 'info' ||
-                opcion === 'informacion' ||
-                opcion === 'menu'
-            ) {
-                await enviarMenuConBotones(remite, false);
+            else if (opcion === 'volver_menu') {
+                await enviarMenuConBotones(remite);
+            }
+            else if (opcion === 'menu' || opcion === 'hola' || opcion === 'info' || opcion === 'informacion' || 
+                     opcion === 'buenas' || opcion === 'buenos dias' || opcion === 'buenas tardes') {
+                await enviarMenuConBotones(remite);
             }
             else if (opcion.includes('horario')) {
                 await enviarInformacion(remite, '1');
@@ -276,73 +359,53 @@ async function iniciarBot() {
             else if (opcion.includes('paquete')) {
                 await enviarInformacion(remite, '3');
             }
-            else if (opcion.includes('ubicacion') || opcion.includes('ubicación') || opcion.includes('donde') || opcion.includes('dónde') || opcion.includes('llegar')) {
+            else if (opcion.includes('ubicacion') || opcion.includes('ubicación') || opcion.includes('donde') || opcion.includes('llegar')) {
                 await enviarInformacion(remite, '4');
             }
             else if (opcion.includes('restaurante')) {
                 await enviarInformacion(remite, '5');
             }
             else {
-                // Mensaje no reconocido: mostrar menú
-                await enviarMenuConBotones(remite, false);
+                // Si no reconoce el comando, muestra el menú
+                await enviarMenuConBotones(remite);
             }
             
         } catch (error) {
-            console.error('❌ Error interno procesando mensaje:', error);
+            console.error('❌ Error:', error);
         }
     });
 }
 
-// Inicializar el bot
+// Iniciar bot
 iniciarBot();
 
-// --- PANEL WEB INTERFAZ ---
+// Panel web
 app.get('/', (req, res) => {
-    const autoReloadScript = qrCodeUrl ? `
-        <script>
-            setInterval(function() {
-                window.location.reload();
-            }, 8000);
-        </script>
-    ` : '';
+    const autoReload = qrCodeUrl ? '<meta http-equiv="refresh" content="8">' : '';
     
     res.send(`
         <!DOCTYPE html>
-        <html lang="es">
+        <html>
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Bot Saqsayki - Panel de Control</title>
+            <title>Bot Saqsayki</title>
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 40px; color: #333; }
-                .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; max-width: 450px; width: 100%; }
-                h1 { color: #075e54; margin-top: 0; }
-                .status { font-size: 1.1em; margin: 20px 0; padding: 10px; background-color: #e3f2fd; border-radius: 8px; color: #0d47a1; font-weight: 500; }
-                img { margin-top: 15px; border: 4px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.15); border-radius: 8px; max-width: 100%; }
-                .footer { margin-top: 25px; font-size: 0.85em; color: #777; }
-                .btn { display: inline-block; padding: 10px 20px; background-color: #25d366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
-                .info { background-color: #e8f5e9; padding: 10px; border-radius: 8px; margin: 15px 0; font-size: 0.9em; }
+                body { font-family: Arial; text-align: center; background: #f0f2f5; padding: 40px; }
+                .card { background: white; padding: 30px; border-radius: 12px; max-width: 400px; margin: auto; }
+                h1 { color: #075e54; }
+                .status { background: #e3f2fd; padding: 10px; border-radius: 8px; margin: 20px 0; }
+                img { max-width: 100%; border-radius: 8px; }
+                .footer { margin-top: 20px; font-size: 12px; color: #777; }
             </style>
-            ${autoReloadScript}
+            ${autoReload}
         </head>
         <body>
             <div class="card">
-                <h1>Bot Saqsayki 🤖</h1>
+                <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                
-                ${qrCodeUrl ? `
-                    <p>Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo:</p>
-                    <img src="${qrCodeUrl}" alt="Código QR de WhatsApp" />
-                ` : `
-                    <div class="info">
-                        ✅ Bot conectado y funcionando correctamente.<br>
-                        📱 Escanea el código QR si ves la pantalla de reconexión.
-                    </div>
-                `}
-                
-                <br>
-                <a href="/" class="btn">Actualizar Estado</a>
-                <div class="footer">Bot con botones interactivos | Saqsayki</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo</p>'}
+                <div class="footer">Bot con botones interactivos</div>
             </div>
         </body>
         </html>
@@ -350,5 +413,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor web escuchando en el puerto ${PORT}`);
+    console.log(`🌐 Web: http://localhost:${PORT}`);
 });
