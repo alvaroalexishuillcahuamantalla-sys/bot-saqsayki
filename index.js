@@ -1,6 +1,7 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const express = require('express');
 const pino = require('pino');
+const axios = require('axios');
 
 // Servidor HTTP
 const app = express();
@@ -12,7 +13,59 @@ let botStatus = 'Iniciando el bot, por favor espera...';
 let sock = null;
 let botNumber = '';
 
+// ============================================================
+// CONFIGURACIÓN DE LA CARTA DEL RESTAURANTE
+// ============================================================
+// URL de la imagen de la carta (YA CONFIGURADA CON TU ENLACE)
+const CARTA_URL = 'https://raw.githubusercontent.com/alvaroalexishuillcahuamantalla-sys/bot-saqsayki/main/carta.jpeg';
+
 const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ============================================================
+// FUNCIÓN PARA ENVIAR LA IMAGEN DE LA CARTA
+// ============================================================
+async function enviarCarta(remite) {
+    try {
+        const response = await axios.get(CARTA_URL, { 
+            responseType: 'arraybuffer',
+            timeout: 10000
+        });
+        
+        await sock.sendMessage(remite, {
+            image: Buffer.from(response.data),
+            caption: `🍽️ *CARTA DEL RESTAURANTE SAQSAYKI*
+
+Aquí está nuestra carta completa con todos nuestros platillos.
+
+📌 *Nota:* Solo realizamos reservas para días festivos y eventos especiales.
+
+¿Tienes alguna consulta? Escríbenos sin problema, estamos para ayudarte.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 Escriba *menu* para volver al inicio`
+        });
+        
+        console.log('✅ Imagen de la carta enviada correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error al enviar la imagen:', error.message);
+        
+        await sock.sendMessage(remite, {
+            text: `🍽️ *CARTA DEL RESTAURANTE SAQSAYKI*
+
+📌 Lo sentimos, no pudimos cargar la imagen de la carta en este momento.
+
+Por favor, inténtalo de nuevo más tarde o contáctanos directamente.
+
+*Próximamente:* Estará disponible nuestra carta completa con todos los platillos.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 Escriba *menu* para volver al inicio`
+        });
+    }
+}
 
 // ============================================================
 // FUNCIÓN PARA OBTENER SALUDO SEGÚN LA HORA
@@ -30,19 +83,52 @@ function obtenerSaludo() {
 }
 
 // ============================================================
+// FUNCIÓN PARA OBTENER SALUDO SEGÚN LO QUE ESCRIBIÓ EL USUARIO
+// ============================================================
+function obtenerRespuestaSaludo(textoUsuario) {
+    const texto = textoUsuario.toLowerCase();
+    
+    if (texto.includes('buenos dias') || texto.includes('buen dia') || texto === 'buenos dias' || texto === 'buen dia') {
+        return "🌅 ¡Buenos días!";
+    }
+    else if (texto.includes('buenas tardes') || texto.includes('buena tarde') || texto === 'buenas tardes' || texto === 'buena tarde') {
+        return "🌤️ ¡Buenas tardes!";
+    }
+    else if (texto.includes('buenas noches') || texto.includes('buena noche') || texto === 'buenas noches' || texto === 'buena noche') {
+        return "🌙 ¡Buenas noches!";
+    }
+    else if (texto === 'hola') {
+        return "👋 ¡Hola!";
+    }
+    else if (texto === 'buenas') {
+        const hora = new Date().getHours();
+        if (hora >= 6 && hora < 12) return "🌅 ¡Buenos días!";
+        else if (hora >= 12 && hora < 19) return "🌤️ ¡Buenas tardes!";
+        else return "🌙 ¡Buenas noches!";
+    }
+    
+    return null;
+}
+
+// ============================================================
 // MENÚ PRINCIPAL CON SALUDO PERSONALIZADO
 // ============================================================
-async function enviarMenuTexto(remite) {
-    const saludo = obtenerSaludo();
+async function enviarMenuTexto(remite, saludoPersonalizado = null) {
+    let saludo;
+    
+    if (saludoPersonalizado) {
+        saludo = saludoPersonalizado;
+    } else {
+        saludo = obtenerSaludo();
+    }
     
     const menuTexto = `
-${saludo}! ✨
+${saludo} ✨
 
-*Bienvenido(a) al Parque Temático Saqsayki* ✨
+*Bienvenido(a) al Parque Temático Saqsayki*
 
 Vive una experiencia única llena de aventura, diversión y naturaleza.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📌 *Seleccione una opción escribiendo el número:*
 
@@ -50,11 +136,11 @@ Vive una experiencia única llena de aventura, diversión y naturaleza.
 2️⃣ *Precios unitarios de juegos*
 3️⃣ *Paquetes promocionales*
 4️⃣ *Cómo llegar*
-5️⃣ *Restaurante*
+5️⃣ *Restaurante* 🍽️ (Ver carta completa)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 *Ejemplo:* Escriba *1* para ver los horarios
+💡 *Ingrese una de las opciones*
 
 📌 *Comandos:* Escriba *menu* para ver este mensaje nuevamente
 
@@ -62,7 +148,7 @@ Vive una experiencia única llena de aventura, diversión y naturaleza.
 `;
 
     await sock.sendMessage(remite, { text: menuTexto });
-    console.log('✅ Menú enviado');
+    console.log('✅ Menú enviado con saludo:', saludo);
 }
 
 // ============================================================
@@ -92,7 +178,6 @@ async function enviarInformacion(remite, opcion) {
 • Trilogía Andina
 • Diversos miradores turísticos
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💬 Escriba *menu* para volver al inicio
 `;
@@ -111,7 +196,6 @@ async function enviarInformacion(remite, opcion) {
 • Columpio Extremo "Vuelo del Cóndor" — S/ 20.00
 • Circuito de 21 obstáculos extremos — S/ 20.00
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💬 Escriba *menu* para volver al inicio
 `;
@@ -142,7 +226,6 @@ async function enviarInformacion(remite, opcion) {
 • Puente aéreo
 • Puente acuático
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💬 Escriba *menu* para volver al inicio
 `;
@@ -151,34 +234,24 @@ async function enviarInformacion(remite, opcion) {
             texto = `
 📍 *CÓMO LLEGAR A SAQSAYKI*
 
-🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
+🏃‍♂️‍➡️ Nos encontramos aproximadamente a 30 minutos a pie desde la Chicana Grande.
 
 🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
 
 🗺️ *Google Maps:*
-https://maps.google.com/?q=-16.4000,-71.5000
+https://maps.app.goo.gl/xrwjZyXT2iBeMiUr9
 
 📞 *Taxis recomendados:*
 926 050 769
 991 972 382
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         case '5':
-            texto = `
-🍽️ *RESTAURANTE SAQSAYKI*
-
-Muy pronto podrás visualizar nuestra carta completa.
-
-📌 Solo realizamos reservas para días festivos y eventos especiales.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💬 Escriba *menu* para volver al inicio
-`;
-            break;
+            await enviarCarta(remite);
+            return;
         default:
             texto = `
 ❌ *Opción no válida*
@@ -268,11 +341,9 @@ async function iniciarBot() {
             
             // IGNORAR GRUPOS
             if (esGrupo) {
-                console.log(`⏭️ Mensaje de grupo IGNORADO - El bot no responde en grupos`);
                 return;
             }
             
-            // Obtener el texto del mensaje
             let textoRecibido = 
                 msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
@@ -280,9 +351,10 @@ async function iniciarBot() {
             
             const opcion = textoRecibido.trim().toLowerCase();
             
-            console.log(`💬 Mensaje privado recibido - Opción: ${opcion}`);
+            console.log(`💬 Mensaje privado recibido: "${textoRecibido.substring(0, 50)}"`);
             
-            // Procesar según la opción
+            const saludoRespuesta = obtenerRespuestaSaludo(textoRecibido);
+            
             if (opcion === '1') {
                 await enviarInformacion(remite, '1');
             }
@@ -301,20 +373,8 @@ async function iniciarBot() {
             else if (opcion === 'menu' || opcion === 'info' || opcion === 'informacion') {
                 await enviarMenuTexto(remite);
             }
-            else if (opcion === 'hola') {
-                await enviarMenuTexto(remite);
-            }
-            else if (opcion === 'buenos dias' || opcion === 'buen dia') {
-                await enviarMenuTexto(remite);
-            }
-            else if (opcion === 'buenas tardes' || opcion === 'buena tarde') {
-                await enviarMenuTexto(remite);
-            }
-            else if (opcion === 'buenas noches' || opcion === 'buena noche') {
-                await enviarMenuTexto(remite);
-            }
-            else if (opcion === 'buenas') {
-                await enviarMenuTexto(remite);
+            else if (saludoRespuesta) {
+                await enviarMenuTexto(remite, saludoRespuesta);
             }
             else if (opcion.includes('horario')) {
                 await enviarInformacion(remite, '1');
@@ -328,11 +388,10 @@ async function iniciarBot() {
             else if (opcion.includes('ubicacion') || opcion.includes('ubicación') || opcion.includes('donde') || opcion.includes('llegar')) {
                 await enviarInformacion(remite, '4');
             }
-            else if (opcion.includes('restaurante') || opcion.includes('comida')) {
+            else if (opcion.includes('restaurante') || opcion.includes('comida') || opcion.includes('carta')) {
                 await enviarInformacion(remite, '5');
             }
             else {
-                // Si no reconoce el comando, muestra el menú
                 await enviarMenuTexto(remite);
             }
             
@@ -345,7 +404,9 @@ async function iniciarBot() {
 // Iniciar bot
 iniciarBot();
 
-// Panel web
+// ============================================================
+// PANEL WEB
+// ============================================================
 app.get('/', (req, res) => {
     const autoReload = qrCodeUrl ? '<meta http-equiv="refresh" content="8">' : '';
     
@@ -355,14 +416,16 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Bot Saqsayki</title>
+            <title>Bot Saqsayki - Parque Temático</title>
             <style>
-                body { font-family: Arial; text-align: center; background: #f0f2f5; padding: 40px; }
-                .card { background: white; padding: 30px; border-radius: 12px; max-width: 400px; margin: auto; }
-                h1 { color: #075e54; }
-                .status { background: #e3f2fd; padding: 10px; border-radius: 8px; margin: 20px 0; }
-                img { max-width: 100%; border-radius: 8px; }
-                .footer { margin-top: 20px; font-size: 12px; color: #777; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; padding: 40px; margin: 0; }
+                .card { background: white; padding: 30px; border-radius: 16px; max-width: 450px; margin: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+                h1 { color: #075e54; margin-top: 0; font-size: 24px; }
+                .status { background: #e3f2fd; padding: 12px; border-radius: 10px; margin: 20px 0; color: #0d47a1; font-weight: 500; }
+                img { max-width: 100%; border-radius: 10px; margin-top: 10px; }
+                .footer { margin-top: 25px; font-size: 12px; color: #777; }
+                .btn { display: inline-block; padding: 10px 20px; background: #25d366; color: white; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: bold; }
+                .info { font-size: 13px; color: #555; margin-top: 15px; }
             </style>
             ${autoReload}
         </head>
@@ -370,8 +433,13 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Saludos personalizados por hora</p>'}
-                <div class="footer">Responde con el número de la opción (1, 2, 3, 4 o 5)</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>📱 Escanea con WhatsApp > Dispositivos vinculados</p>` : '<p>✅ Bot activo y funcionando</p>'}
+                <div class="info">
+                    📌 Opción 5: Envía la carta del restaurante con imagen<br>
+                    🌅 Saludos personalizados según la hora
+                </div>
+                <a href="/" class="btn">🔄 Actualizar</a>
+                <div class="footer">Parque Temático Saqsayki | Tu mejor experiencia</div>
             </div>
         </body>
         </html>
@@ -379,5 +447,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🌐 Web: http://localhost:${PORT}`);
+    console.log(`🌐 Panel web disponible en: http://localhost:${PORT}`);
+    console.log(`🚀 Bot iniciado y esperando conexión...`);
 });
