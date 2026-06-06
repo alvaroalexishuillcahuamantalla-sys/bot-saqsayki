@@ -130,7 +130,7 @@ Seleccione una opción:
 para volver al menú principal.
 `;
 
-       if (
+if (
     opcion === 'hola' ||
     opcion === 'buenas' ||
     opcion === 'buenos dias' ||
@@ -147,7 +147,7 @@ para volver al menú principal.
     opcion.includes('donde') ||
     opcion.includes('dónde') ||
     opcion.includes('restaurante')
-) {
+    ) {
 
     await esperar(1000);
 
