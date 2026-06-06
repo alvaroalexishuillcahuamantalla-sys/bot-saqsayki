@@ -15,11 +15,30 @@ let botNumber = '';
 const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ============================================================
-// MENÚ PRINCIPAL - Formato limpio y profesional
+// FUNCIÓN PARA OBTENER SALUDO SEGÚN LA HORA
+// ============================================================
+function obtenerSaludo() {
+    const hora = new Date().getHours();
+    
+    if (hora >= 6 && hora < 12) {
+        return "🌅 Buenos días";
+    } else if (hora >= 12 && hora < 19) {
+        return "🌤️ Buenas tardes";
+    } else {
+        return "🌙 Buenas noches";
+    }
+}
+
+// ============================================================
+// MENÚ PRINCIPAL CON SALUDO PERSONALIZADO
 // ============================================================
 async function enviarMenuTexto(remite) {
+    const saludo = obtenerSaludo();
+    
     const menuTexto = `
-✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
+${saludo}! ✨
+
+*Bienvenido(a) al Parque Temático Saqsayki* ✨
 
 Vive una experiencia única llena de aventura, diversión y naturaleza.
 
@@ -156,7 +175,7 @@ Muy pronto podrás visualizar nuestra carta completa.
 
 📌 Solo realizamos reservas para días festivos y eventos especiales.
 
-Para más información comuníquese con nuestro equipo de atención al cliente.
+¿Tienes alguna consulta? Escríbenos sin problema, estamos para ayudarte.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -250,17 +269,11 @@ async function iniciarBot() {
             const remite = msg.key.remoteJid;
             const esGrupo = remite.endsWith('@g.us');
             
-            // ============================================
-            // IGNORAR COMPLETAMENTE LOS MENSAJES DE GRUPOS
-            // ============================================
+            // IGNORAR GRUPOS
             if (esGrupo) {
                 console.log(`⏭️ Mensaje de grupo IGNORADO - El bot no responde en grupos`);
-                return; // Salimos sin procesar el mensaje
+                return;
             }
-            
-            // ============================================
-            // SOLO PROCESAR MENSAJES DE CHAT PRIVADO
-            // ============================================
             
             // Obtener el texto del mensaje
             let textoRecibido = 
@@ -288,8 +301,22 @@ async function iniciarBot() {
             else if (opcion === '5') {
                 await enviarInformacion(remite, '5');
             }
-            else if (opcion === 'menu' || opcion === 'hola' || opcion === 'info' || opcion === 'informacion' || 
-                     opcion === 'buenas' || opcion === 'buenos dias' || opcion === 'buenas tardes' || opcion === 'buenas noches') {
+            else if (opcion === 'menu' || opcion === 'info' || opcion === 'informacion') {
+                await enviarMenuTexto(remite);
+            }
+            else if (opcion === 'hola') {
+                await enviarMenuTexto(remite);
+            }
+            else if (opcion === 'buenos dias' || opcion === 'buen dia') {
+                await enviarMenuTexto(remite);
+            }
+            else if (opcion === 'buenas tardes' || opcion === 'buena tarde') {
+                await enviarMenuTexto(remite);
+            }
+            else if (opcion === 'buenas noches' || opcion === 'buena noche') {
+                await enviarMenuTexto(remite);
+            }
+            else if (opcion === 'buenas') {
                 await enviarMenuTexto(remite);
             }
             else if (opcion.includes('horario')) {
@@ -304,7 +331,7 @@ async function iniciarBot() {
             else if (opcion.includes('ubicacion') || opcion.includes('ubicación') || opcion.includes('donde') || opcion.includes('llegar')) {
                 await enviarInformacion(remite, '4');
             }
-            else if (opcion.includes('restaurante')) {
+            else if (opcion.includes('restaurante') || opcion.includes('comida')) {
                 await enviarInformacion(remite, '5');
             }
             else {
@@ -346,8 +373,8 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Solo responde en chats privados</p>'}
-                <div class="footer">El bot NO responde en grupos de WhatsApp</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Saludos personalizados por hora</p>'}
+                <div class="footer">Responde con el número de la opción (1, 2, 3, 4 o 5)</div>
             </div>
         </body>
         </html>
