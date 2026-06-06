@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 10000;
 let qrCodeUrl = '';
 let botStatus = 'Iniciando el bot, por favor espera...';
 let sock = null; // Guardamos la instancia del socket globalmente
+// Hace que el bot responda de forma más natural
+const esperar = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 // Lógica principal del Bot
 async function iniciarBot() {
@@ -78,57 +82,238 @@ async function iniciarBot() {
 
     // Escucha y respuesta automática de mensajes
     sock.ev.on('messages.upsert', async (m) => {
-        try {
-            const msg = m.messages[0];
-            
-            if (!msg || !msg.message) return;
-            if (msg.key.fromMe) return; // Evita responderse a sí mismo
 
-            const remite = msg.key.remoteJid;
+    try {
 
-            // Extracción de texto sin importar el formato de origen
-            const textoRecibido = 
-                msg.message.conversation || 
-                msg.message.extendedTextMessage?.text || 
-                msg.message.imageMessage?.caption || 
-                '';
+        const msg = m.messages[0];
 
-            const opcion = textoRecibido.trim().toLowerCase();
-            console.log(`💬 Mensaje recibido de [${remite}]: "${textoRecibido}"`);
+        if (!msg || !msg.message) return;
+        if (msg.key.fromMe) return;
 
-            // --- DISEÑO DE LOS MENSAJES AUTOMÁTICOS ---
-            const menuPrincipal = `✨ *¡Bienvenido(a) al Parque Saqsayqui de Juegos Extremos!* ✨\n\nNos alegra recibir su mensaje. Somos un espacio dedicado a la diversión, la aventura y las experiencias inolvidables para toda la familia.\n\nPor favor, indíquenos cómo podemos ayudarle enviando solo el *número* de la opción:\n\n1️⃣ *HORARIOS Y INGRESO*\n2️⃣ *PRECIOS UNITARIOS DE JUEGOS*\n3️⃣ *PAQUETES PROMOCIONALES*\n4️⃣ *CÓMO LLEGAR*\n5️⃣ *PLATOS A LA CARTA*`;
+        const remite = msg.key.remoteJid;
 
-            if (opcion === '1') {
-                const msgHorarios = `🗓️ *Nuestro horario de atención:* \nLunes a domingo (incluyendo feriados)\n⏰ De *9:30 a.m. a 5:30 p.m.*\n\n🏞️ *COSTO DE INGRESO (Incluye miradores y puente acuático):*\n👉 Adultos: *S/ 7.00*\n👉 Niños: *S/ 4.00*\n\n📸 *Atractivos incluidos que podrás visitar:*\n* Mirador de la *mano gigante del Inca*\n* *Bosque encantado de los duendes*\n* Mirador de la *mano de choclo de oro*\n* *Trilogía andina*\n* ¡Y muchos más miradores hermosos!`;
-                await sock.sendMessage(remite, { text: msgHorarios });
+        const textoRecibido =
+            msg.message.conversation ||
+            msg.message.extendedTextMessage?.text ||
+            msg.message.imageMessage?.caption ||
+            '';
 
-            } else if (opcion === '2') {
-                const msgPrecios = `💰 *PRECIOS UNITARIOS DE JUEGOS*\n\n🌊 *JUEGOS ACUÁTICOS:*\n• *Caminata en línea* – S/ 5.00\n• *Puente acuático* – S/ 5.00\n• *Tirolesa acuática* – S/ 8.00\n• *Puente aéreo* – S/ 8.00\n\n⛰️ *JUEGOS DE ALTURA:*\n• *Columpio extremo “Vuelo del Cóndor”* (25 m) – S/ 20.00\n• *Circuito de 21 obstáculos extremos* – S/ 20.00`;
-                await sock.sendMessage(remite, { text: msgPrecios });
+        const opcion = textoRecibido.trim().toLowerCase();
 
-            } else if (opcion === '3') {
-                const msgPaquetes = `🎒 *PAQUETES PROMOCIONALES*\nPrecios por persona diseñados para disfrutar al máximo:\n\n🔹 *PAQUETE 1 – S/ 25.00*\n• Entrada al parque (miradores)\n• Puente acuático\n• Caminata en línea\n• Tirolesa acuática\n• Puente aéreo\n\n🔹 *PAQUETE 2 – S/ 35.00*\n• Entrada al parque (miradores)\n• Columpio extremo\n• Circuito de 21 obstáculos\n• Puente acuático\n\n🔹 *PAQUETE 3 – S/ 45.00 – EXPERIENCIA COMPLETA*\n• Entrada al parque (miradores)\n• Columpio extremo (25 m)\n• Circuito de 21 obstáculos\n• Tirolesa acuática\n• Caminata en línea\n• Puente aéreo\n• Puente acuático`;
-                await sock.sendMessage(remite, { text: msgPaquetes });
+        console.log(`💬 Mensaje recibido de [${remite}]: "${textoRecibido}"`);
 
-            } else if (opcion === '4') {
-                const msgLlegar = `📍 *CÓMO LLEGAR A SAQSAYKI*\n\nHaz clic en el siguiente enlace para ver nuestra ubicación exacta y trazar tu ruta en Google Maps:\n🗺️ https://maps.google.com/?q=-16.4000,-71.5000 \n\n🚕 *Servicio de Taxi de Confianza:*\nSi necesitas transporte seguro para visitarnos, puedes llamar a:\n📞 *926050769* o *991972382*`;
-                await sock.sendMessage(remite, { text: msgLlegar });
+        const menuPrincipal = `
+✨ *¡Bienvenido(a) al Parque Temático Saqsayki!* ✨
 
-            } else if (opcion === '5') {
-                const msgComida = `🍽️ *PLATOS A LA CARTA (Nuestra Quinta Restaurante)*\n\n• Cuy al horno entero — S/ 60\n• Trucha frita — S/ 25\n• Chicharrón de cerdo — S/ 25\n• Chuleta de cerdo — S/ 25\n• Pollo al horno — S/ 25`;
-                await sock.sendMessage(remite, { text: msgComida });
+🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
 
-            } else {
-                // Si el usuario escribe cualquier otra cosa, se le envía el menú principal
-                await sock.sendMessage(remite, { text: menuPrincipal });
-            }
-            
-        } catch (error) {
-            console.error('❌ Error interno procesando el mensaje recibido:', error);
+Seleccione una opción:
+
+1️⃣ Horarios e ingreso
+
+2️⃣ Precios unitarios de juegos
+
+3️⃣ Paquetes promocionales
+
+4️⃣ Cómo llegar
+
+5️⃣ Restaurante
+
+📌 También puede escribir:
+
+*menu*
+
+para volver al menú principal.
+`;
+
+        if (
+            opcion === 'hola' ||
+            opcion === 'buenas' ||
+            opcion === 'buenos dias' ||
+            opcion === 'buenas tardes' ||
+            opcion === 'buenas noches' ||
+            opcion === 'info' ||
+            opcion === 'informacion' ||
+            opcion === 'menu'
+        ) {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: menuPrincipal
+            });
+
         }
-    });
-}
+
+        else if (opcion === '1') {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: `🕒 *HORARIOS E INGRESO*
+
+📅 Lunes a domingo (incluyendo feriados)
+
+⏰ 9:30 a.m. a 5:30 p.m.
+
+🎟️ Ingreso:
+
+👨 Adultos: S/ 7.00
+
+👦 Niños: S/ 4.00
+
+Incluye:
+
+✅ Mano Gigante del Inca
+
+✅ Bosque Encantado de los Duendes
+
+✅ Mano de Choclo de Oro
+
+✅ Trilogía Andina
+
+✅ Diversos miradores turísticos`
+            });
+
+        }
+
+        else if (opcion === '2') {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: `💰 *PRECIOS UNITARIOS DE JUEGOS*
+
+🌊 Juegos Acuáticos
+
+• Caminata en línea — S/ 5.00
+
+• Puente acuático — S/ 5.00
+
+• Tirolesa acuática — S/ 8.00
+
+• Puente aéreo — S/ 8.00
+
+━━━━━━━━━━━━━━━
+
+⛰️ Juegos de Altura
+
+• Columpio Extremo "Vuelo del Cóndor" — S/ 20.00
+
+• Circuito de 21 obstáculos extremos — S/ 20.00`
+            });
+
+        }
+
+        else if (opcion === '3') {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: `🎒 *PAQUETES PROMOCIONALES*
+
+💦 *PAQUETE ACUÁTICO* — S/ 25.00
+
+✅ Entrada al parque
+
+✅ Puente acuático
+
+✅ Caminata en línea
+
+✅ Tirolesa acuática
+
+✅ Puente aéreo
+
+━━━━━━━━━━━━━━━
+
+🧗 *PAQUETE AVENTURERO* — S/ 35.00
+
+✅ Entrada al parque
+
+✅ Columpio extremo
+
+✅ Circuito de 21 obstáculos
+
+✅ Puente acuático
+
+━━━━━━━━━━━━━━━
+
+🔥 *PAQUETE FULL* — S/ 45.00
+
+✅ Entrada al parque
+
+✅ Columpio extremo
+
+✅ Circuito de 21 obstáculos
+
+✅ Tirolesa acuática
+
+✅ Caminata en línea
+
+✅ Puente aéreo
+
+✅ Puente acuático`
+            });
+
+        }
+
+        else if (opcion === '4') {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: `📍 *¿CÓMO LLEGAR A SAQSAYKI?*
+
+🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
+
+🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
+
+🗺️ Google Maps:
+
+https://maps.google.com/?q=-16.4000,-71.5000
+
+📞 Taxis recomendados:
+
+926050769
+
+991972382`
+            });
+
+        }
+
+        else if (opcion === '5') {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: `🍽️ *Restaurante Saqsayki*
+
+Muy pronto podrás visualizar nuestra carta completa.
+
+📌 Solo realizamos reservas para días festivos.
+
+Para más información comuníquese con nuestro equipo.`
+            });
+
+        }
+
+        else {
+
+            await esperar(1000);
+
+            await sock.sendMessage(remite, {
+                text: menuPrincipal
+            });
+
+        }
+
+    } catch (error) {
+
+        console.error('❌ Error interno procesando mensaje:', error);
+
+    }
+
+});
 
 // Inicializar el bot de WhatsApp por primera vez
 iniciarBot();
