@@ -37,7 +37,7 @@ Vive una experiencia única llena de aventura, diversión y naturaleza.
 
 💡 *Ejemplo:* Escriba *1* para ver los horarios
 
-📌 *Escriba: menu* para ver este mensaje nuevamente
+📌 *Comandos:* Escriba *menu* para ver este mensaje nuevamente
 
 📍 *Saqsayki - Tu mejor experiencia*
 `;
@@ -47,30 +47,9 @@ Vive una experiencia única llena de aventura, diversión y naturaleza.
 }
 
 // ============================================================
-// MENÚ PARA GRUPOS (más breve)
-// ============================================================
-async function enviarMenuGrupo(remite) {
-    const menuGrupo = `
-✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
-
-Escriba el número de la opción:
-
-1️⃣ Horarios e ingreso
-2️⃣ Precios unitarios
-3️⃣ Paquetes promocionales
-4️⃣ Cómo llegar
-5️⃣ Restaurante
-
-💡 Ejemplo: 1
-`;
-
-    await sock.sendMessage(remite, { text: menuGrupo });
-}
-
-// ============================================================
 // INFORMACIÓN ESPECÍFICA
 // ============================================================
-async function enviarInformacion(remite, opcion, esGrupo = false) {
+async function enviarInformacion(remite, opcion) {
     await esperar(1000);
     
     let texto = '';
@@ -153,7 +132,7 @@ async function enviarInformacion(remite, opcion, esGrupo = false) {
             texto = `
 📍 *CÓMO LLEGAR A SAQSAYKI*
 
-🚗 Nos encontramos aproximadamente a 30 minutos a pie la de Chicana Grande.
+🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
 
 🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
 
@@ -176,6 +155,8 @@ https://maps.google.com/?q=-16.4000,-71.5000
 Muy pronto podrás visualizar nuestra carta completa.
 
 📌 Solo realizamos reservas para días festivos y eventos especiales.
+
+Para más información comuníquese con nuestro equipo de atención al cliente.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -269,6 +250,18 @@ async function iniciarBot() {
             const remite = msg.key.remoteJid;
             const esGrupo = remite.endsWith('@g.us');
             
+            // ============================================
+            // IGNORAR COMPLETAMENTE LOS MENSAJES DE GRUPOS
+            // ============================================
+            if (esGrupo) {
+                console.log(`⏭️ Mensaje de grupo IGNORADO - El bot no responde en grupos`);
+                return; // Salimos sin procesar el mensaje
+            }
+            
+            // ============================================
+            // SOLO PROCESAR MENSAJES DE CHAT PRIVADO
+            // ============================================
+            
             // Obtener el texto del mensaje
             let textoRecibido = 
                 msg.message.conversation ||
@@ -277,68 +270,9 @@ async function iniciarBot() {
             
             const opcion = textoRecibido.trim().toLowerCase();
             
-            // Verificar si mencionan al bot en grupos
-            let mencionaBot = false;
-            if (esGrupo && botNumber) {
-                const mentionedJid = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
-                mencionaBot = mentionedJid.includes(botNumber);
-                
-                const textoLower = textoRecibido.toLowerCase();
-                if (textoLower.includes('@') || textoLower.includes('bot') || textoLower.includes('saqsayki')) {
-                    mencionaBot = true;
-                }
-            }
+            console.log(`💬 Mensaje privado recibido - Opción: ${opcion}`);
             
-            console.log(`📩 Mensaje - Grupo:${esGrupo} - Opción:${opcion}`);
-            
-            // === MANEJO DE GRUPOS ===
-            if (esGrupo) {
-                const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5'];
-                const esComando = comandosPermitidos.includes(opcion);
-                
-                if (mencionaBot || esComando) {
-                    console.log(`📢 Respondiendo en grupo`);
-                    
-                    if (opcion === 'menu' || opcion === 'hola' || opcion === 'info') {
-                        await enviarMenuGrupo(remite);
-                    } 
-                    else if (opcion === '1') {
-                        await enviarInformacion(remite, '1', true);
-                    }
-                    else if (opcion === '2') {
-                        await enviarInformacion(remite, '2', true);
-                    }
-                    else if (opcion === '3') {
-                        await enviarInformacion(remite, '3', true);
-                    }
-                    else if (opcion === '4') {
-                        await enviarInformacion(remite, '4', true);
-                    }
-                    else if (opcion === '5') {
-                        await enviarInformacion(remite, '5', true);
-                    }
-                    else if (opcion.includes('horario')) {
-                        await enviarInformacion(remite, '1', true);
-                    }
-                    else if (opcion.includes('precio')) {
-                        await enviarInformacion(remite, '2', true);
-                    }
-                    else if (opcion.includes('paquete')) {
-                        await enviarInformacion(remite, '3', true);
-                    }
-                    else if (opcion.includes('ubicacion') || opcion.includes('llegar')) {
-                        await enviarInformacion(remite, '4', true);
-                    }
-                    else if (opcion.includes('restaurante')) {
-                        await enviarInformacion(remite, '5', true);
-                    }
-                }
-                return;
-            }
-            
-            // === MANEJO DE CHAT PRIVADO ===
-            console.log(`💬 Respondiendo en privado`);
-            
+            // Procesar según la opción
             if (opcion === '1') {
                 await enviarInformacion(remite, '1');
             }
@@ -374,6 +308,7 @@ async function iniciarBot() {
                 await enviarInformacion(remite, '5');
             }
             else {
+                // Si no reconoce el comando, muestra el menú
                 await enviarMenuTexto(remite);
             }
             
@@ -411,8 +346,8 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Menú en formato limpio</p>'}
-                <div class="footer">Responde con el número de la opción (1, 2, 3, 4 o 5)</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Solo responde en chats privados</p>'}
+                <div class="footer">El bot NO responde en grupos de WhatsApp</div>
             </div>
         </body>
         </html>
