@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 10000;
 let qrCodeUrl = '';
 let botStatus = 'Iniciando el bot, por favor espera...';
 let sock = null; // Guardamos la instancia del socket globalmente
+
 // Hace que el bot responda de forma más natural
 const esperar = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -82,31 +83,29 @@ async function iniciarBot() {
 
     // Escucha y respuesta automática de mensajes
     sock.ev.on('messages.upsert', async (m) => {
+        try {
+            const msg = m.messages[0];
 
-    try {
+            if (!msg || !msg.message) return;
+            if (msg.key.fromMe) return;
 
-        const msg = m.messages[0];
+            const remite = msg.key.remoteJid;
+            // Ignorar grupos completamente
+            if (remite.endsWith('@g.us')) {
+                return;
+            }
 
-        if (!msg || !msg.message) return;
-        if (msg.key.fromMe) return;
+            const textoRecibido =
+                msg.message.conversation ||
+                msg.message.extendedTextMessage?.text ||
+                msg.message.imageMessage?.caption ||
+                '';
 
-        const remite = msg.key.remoteJid;
-        // Ignorar grupos completamente
-        if (remite.endsWith('@g.us')) {
-            return;
-        }
+            const opcion = textoRecibido.trim().toLowerCase();
 
-        const textoRecibido =
-            msg.message.conversation ||
-            msg.message.extendedTextMessage?.text ||
-            msg.message.imageMessage?.caption ||
-            '';
+            console.log(`📩 Mensaje privado recibido`);
 
-        const opcion = textoRecibido.trim().toLowerCase();
-
-        console.log(`📩 Mensaje privado recibido`);
-
-        const menuPrincipal = `
+            const menuPrincipal = `
 ✨ *¡Bienvenido(a) al Parque Temático Saqsayki!* ✨
 
 🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
@@ -130,39 +129,32 @@ Seleccione una opción:
 para volver al menú principal.
 `;
 
-if (
-    opcion === 'hola' ||
-    opcion === 'buenas' ||
-    opcion === 'buenos dias' ||
-    opcion === 'buenas tardes' ||
-    opcion === 'buenas noches' ||
-    opcion === 'info' ||
-    opcion === 'informacion' ||
-    opcion === 'menu' ||
-    opcion.includes('horario') ||
-    opcion.includes('precio') ||
-    opcion.includes('paquete') ||
-    opcion.includes('ubicacion') ||
-    opcion.includes('ubicación') ||
-    opcion.includes('donde') ||
-    opcion.includes('dónde') ||
-    opcion.includes('restaurante')
-    ) {
-
-    await esperar(1000);
-
-    await sock.sendMessage(remite, {
-        text: menuPrincipal
-    });
-
-}
-
-        else if (opcion === '1') {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: `🕒 *HORARIOS E INGRESO*
+            if (
+                opcion === 'hola' ||
+                opcion === 'buenas' ||
+                opcion === 'buenos dias' ||
+                opcion === 'buenas tardes' ||
+                opcion === 'buenas noches' ||
+                opcion === 'info' ||
+                opcion === 'informacion' ||
+                opcion === 'menu' ||
+                opcion.includes('horario') ||
+                opcion.includes('precio') ||
+                opcion.includes('paquete') ||
+                opcion.includes('ubicacion') ||
+                opcion.includes('ubicación') ||
+                opcion.includes('donde') ||
+                opcion.includes('dónde') ||
+                opcion.includes('restaurante')
+            ) {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: menuPrincipal
+                });
+            } else if (opcion === '1') {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: `🕒 *HORARIOS E INGRESO*
 
 📅 Lunes a domingo (incluyendo feriados)
 
@@ -185,16 +177,11 @@ Incluye:
 ✅ Trilogía Andina
 
 ✅ Diversos miradores turísticos`
-            });
-
-        }
-
-        else if (opcion === '2') {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: `💰 *PRECIOS UNITARIOS DE JUEGOS*
+                });
+            } else if (opcion === '2') {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: `💰 *PRECIOS UNITARIOS DE JUEGOS*
 
 🌊 Juegos Acuáticos
 
@@ -213,16 +200,11 @@ Incluye:
 • Columpio Extremo "Vuelo del Cóndor" — S/ 20.00
 
 • Circuito de 21 obstáculos extremos — S/ 20.00`
-            });
-
-        }
-
-        else if (opcion === '3') {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: `🎒 *PAQUETES PROMOCIONALES*
+                });
+            } else if (opcion === '3') {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: `🎒 *PAQUETES PROMOCIONALES*
 
 💦 *PAQUETE ACUÁTICO* — S/ 25.00
 
@@ -265,16 +247,11 @@ Incluye:
 ✅ Puente aéreo
 
 ✅ Puente acuático`
-            });
-
-        }
-
-        else if (opcion === '4') {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: `📍 *¿CÓMO LLEGAR A SAQSAYKI?*
+                });
+            } else if (opcion === '4') {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: `📍 *¿CÓMO LLEGAR A SAQSAYKI?*
 
 🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
 
@@ -289,49 +266,44 @@ https://maps.google.com/?q=-16.4000,-71.5000
 926050769
 
 991972382`
-            });
-
-        }
-
-        else if (opcion === '5') {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: `🍽️ *Restaurante Saqsayki*
+                });
+            } else if (opcion === '5') {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: `🍽️ *Restaurante Saqsayki*
 
 Muy pronto podrás visualizar nuestra carta completa.
 
 📌 Solo realizamos reservas para días festivos.
 
 Para más información comuníquese con nuestro equipo.`
-            });
-
+                });
+            } else {
+                await esperar(1000);
+                await sock.sendMessage(remite, {
+                    text: menuPrincipal
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error interno procesando mensaje:', error);
         }
-
-        else {
-
-            await esperar(1000);
-
-            await sock.sendMessage(remite, {
-                text: menuPrincipal
-            });
-
-        }
-
-    } catch (error) {
-
-        console.error('❌ Error interno procesando mensaje:', error);
-
-    }
-
-});
+    });
+}
 
 // Inicializar el bot de WhatsApp por primera vez
 iniciarBot();
 
 // --- PANEL WEB INTERFAZ ---
 app.get('/', (req, res) => {
+    // Script de recarga automática corregido
+    const autoReloadScript = qrCodeUrl ? `
+        <script>
+            setInterval(function() {
+                window.location.reload();
+            }, 8000);
+        </script>
+    ` : '';
+    
     res.send(`
         <!DOCTYPE html>
         <html lang="es">
@@ -348,14 +320,7 @@ app.get('/', (req, res) => {
                 .footer { margin-top: 25px; font-size: 0.85em; color: #777; }
                 .btn { display: inline-block; padding: 10px 20px; background-color: #25d366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
             </style>
-            <script>
-                // Recarga automática cada 8 segundos solo si hay un QR visible para escanear
-                ${qrCodeUrl ? `
-                setInterval(() => {
-                    window.location.reload();
-                }, 8000);
-                ` : ''}
-            </script>
+            ${autoReloadScript}
         </head>
         <body>
             <div class="card">
