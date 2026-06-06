@@ -14,55 +14,142 @@ let botNumber = '';
 
 const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ✅ NUEVA FUNCIÓN: Enviar menú con botones interactivos (versión actualizada)
+// ============================================================
+// ESTRATEGIA 1: MENÚ CON BOTONES INTERACTIVOS (Nativo)
+// ============================================================
 async function enviarMenuConBotones(remite) {
-    const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨\n\n🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.\n\n*Seleccione una opción:*`;
+    try {
+        const menuTexto = `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨\n\n🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.\n\n*Seleccione una opción:*`;
 
-    // Estructura CORRECTA para botones en Baileys actual [citation:4][citation:10]
-    const interactiveMessage = {
-        text: menuTexto,
-        footer: '📍 Parque Saqsayki - Tu aventura comienza aquí',
-        title: '🎯 MENÚ PRINCIPAL',
-        interactiveButtons: [
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🕒 Horarios e ingreso",
-                    id: "opcion_1"
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "💰 Precios unitarios",
-                    id: "opcion_2"
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🎒 Paquetes promocionales",
-                    id: "opcion_3"
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📍 Cómo llegar",
-                    id: "opcion_4"
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🍽️ Restaurante",
-                    id: "opcion_5"
-                })
-            }
-        ]
-    };
+        const interactiveMessage = {
+            text: menuTexto,
+            footer: '📍 Parque Saqsayki - Tu aventura comienza aquí',
+            title: '🎯 MENÚ PRINCIPAL',
+            interactiveButtons: [
+                {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "🕒 Horarios e ingreso",
+                        id: "opcion_1"
+                    })
+                },
+                {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "💰 Precios unitarios",
+                        id: "opcion_2"
+                    })
+                },
+                {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "🎒 Paquetes promocionales",
+                        id: "opcion_3"
+                    })
+                },
+                {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "📍 Cómo llegar",
+                        id: "opcion_4"
+                    })
+                },
+                {
+                    name: "quick_reply",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "🍽️ Restaurante",
+                        id: "opcion_5"
+                    })
+                }
+            ]
+        };
 
-    await sock.sendMessage(remite, interactiveMessage);
+        await sock.sendMessage(remite, interactiveMessage);
+        console.log('✅ Menú con botones enviado');
+        return true;
+    } catch (error) {
+        console.log('⚠️ Error enviando botones, usando estrategia alternativa:', error.message);
+        return false;
+    }
+}
+
+// ============================================================
+// ESTRATEGIA 2: MENÚ CON LISTA DESPLEGABLE (Alternativa)
+// ============================================================
+async function enviarMenuLista(remite) {
+    try {
+        const listMessage = {
+            text: `✨ *PARQUE TEMÁTICO SAQSAYKI* ✨\n\n🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.\n\n*Toca el botón para ver las opciones:*`,
+            footer: '📍 Parque Saqsayki',
+            title: '🎯 MENÚ PRINCIPAL',
+            buttonText: '📋 Ver opciones',
+            sections: [
+                {
+                    title: "INFORMACIÓN DEL PARQUE",
+                    rows: [
+                        { title: "🕒 Horarios e ingreso", description: "Ver horarios y precios de entrada", rowId: "opcion_1" },
+                        { title: "💰 Precios unitarios", description: "Precios de cada juego", rowId: "opcion_2" },
+                        { title: "🎒 Paquetes promocionales", description: "Promociones y descuentos", rowId: "opcion_3" },
+                        { title: "📍 Cómo llegar", description: "Dirección y transporte", rowId: "opcion_4" },
+                        { title: "🍽️ Restaurante", description: "Información del restaurante", rowId: "opcion_5" }
+                    ]
+                }
+            ]
+        };
+
+        await sock.sendMessage(remite, listMessage);
+        console.log('✅ Menú con lista enviado');
+        return true;
+    } catch (error) {
+        console.log('⚠️ Error enviando lista, usando texto simple:', error.message);
+        return false;
+    }
+}
+
+// ============================================================
+// ESTRATEGIA 3: MENÚ CON TEXTO NUMÉRICO (Fallback final)
+// ============================================================
+async function enviarMenuTexto(remite) {
+    const menuTexto = `✨ *BIENVENIDO(A) AL PARQUE TEMÁTICO SAQSAYKI* ✨
+
+🏞️ Vive una experiencia única llena de aventura, diversión y naturaleza.
+
+*Responde con el número de tu opción:*
+
+1️⃣ Horarios e ingreso
+2️⃣ Precios unitarios de juegos
+3️⃣ Paquetes promocionales
+4️⃣ Cómo llegar
+5️⃣ Restaurante
+
+━━━━━━━━━━━━━━━━━━━━━
+
+📌 *Ejemplo:* Responde con el *número 1* para ver los horarios.
+📌 *Para volver al menú escribe:* *menu*`;
+
+    await sock.sendMessage(remite, { text: menuTexto });
+    console.log('✅ Menú con texto numérico enviado (fallback)');
+}
+
+// ============================================================
+// FUNCIÓN PRINCIPAL: Intenta todos los métodos
+// ============================================================
+async function enviarMenuInteligente(remite) {
+    // Primero intentamos con botones interactivos
+    const botonesExitoso = await enviarMenuConBotones(remite);
+    
+    // Esperamos un momento para no sobrecargar
+    await esperar(1000);
+    
+    // Como respaldo adicional, también enviamos la lista (solo si los botones fallaron)
+    if (!botonesExitoso) {
+        const listaExitosa = await enviarMenuLista(remite);
+        
+        if (!listaExitosa) {
+            // Si todo falla, usamos el texto numérico
+            await enviarMenuTexto(remite);
+        }
+    }
 }
 
 // Función para enviar información específica
@@ -160,28 +247,11 @@ Para más información comuníquese con nuestro equipo.`;
     }
     
     await sock.sendMessage(remite, { text: texto });
-    
-    // Preguntar si quiere volver al menú
-    await esperar(1500);
-    
-    const menuVolver = {
-        text: '🔙 ¿Deseas volver al menú principal?',
-        footer: 'Parque Saqsayki',
-        interactiveButtons: [
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🔙 Volver al menú",
-                    id: "volver_menu"
-                })
-            }
-        ]
-    };
-    
-    await sock.sendMessage(remite, menuVolver);
 }
 
-// Lógica principal del Bot
+// ============================================================
+// LÓGICA PRINCIPAL DEL BOT
+// ============================================================
 async function iniciarBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sesion_whatsapp');
 
@@ -253,11 +323,11 @@ async function iniciarBot() {
             const remite = msg.key.remoteJid;
             const esGrupo = remite.endsWith('@g.us');
             
-            // Obtener opción (texto o botón)
+            // Detectar opción (texto, botón, lista)
             let opcion = '';
             let textoOriginal = '';
             
-            // Detectar si es respuesta de un botón interactivo
+            // Botón interactivo
             if (msg.message.interactiveResponseMessage) {
                 const interactiveResponse = msg.message.interactiveResponseMessage;
                 if (interactiveResponse.nativeFlowResponseMessage) {
@@ -267,7 +337,13 @@ async function iniciarBot() {
                     console.log(`🔘 Botón presionado: ${opcion}`);
                 }
             }
-            // Detectar botón quick_reply específico
+            // Respuesta de lista
+            else if (msg.message.listResponseMessage) {
+                opcion = msg.message.listResponseMessage.singleSelectReply?.selectedRowId || '';
+                textoOriginal = opcion;
+                console.log(`📋 Opción de lista seleccionada: ${opcion}`);
+            }
+            // Botón antiguo
             else if (msg.message.buttonsResponseMessage) {
                 opcion = msg.message.buttonsResponseMessage.selectedButtonId || '';
                 textoOriginal = opcion;
@@ -297,14 +373,14 @@ async function iniciarBot() {
             
             // === MANEJO DE GRUPOS ===
             if (esGrupo) {
-                const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5', 'opcion_1', 'opcion_2', 'opcion_3', 'opcion_4', 'opcion_5', 'volver_menu'];
+                const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5', 'opcion_1', 'opcion_2', 'opcion_3', 'opcion_4', 'opcion_5'];
                 const esComando = comandosPermitidos.includes(opcion);
                 
                 if (mencionaBot || esComando) {
                     console.log(`📢 Respondiendo en grupo`);
                     
                     if (opcion === 'menu' || opcion === 'hola' || opcion === 'info') {
-                        await enviarMenuConBotones(remite);
+                        await enviarMenuInteligente(remite);
                     } 
                     else if (opcion === '1' || opcion === 'opcion_1') {
                         await enviarInformacion(remite, '1');
@@ -320,9 +396,6 @@ async function iniciarBot() {
                     }
                     else if (opcion === '5' || opcion === 'opcion_5') {
                         await enviarInformacion(remite, '5');
-                    }
-                    else if (opcion === 'volver_menu') {
-                        await enviarMenuConBotones(remite);
                     }
                     else if (opcion.includes('horario')) {
                         await enviarInformacion(remite, '1');
@@ -361,12 +434,9 @@ async function iniciarBot() {
             else if (opcion === '5' || opcion === 'opcion_5') {
                 await enviarInformacion(remite, '5');
             }
-            else if (opcion === 'volver_menu') {
-                await enviarMenuConBotones(remite);
-            }
             else if (opcion === 'menu' || opcion === 'hola' || opcion === 'info' || opcion === 'informacion' || 
                      opcion === 'buenas' || opcion === 'buenos dias' || opcion === 'buenas tardes') {
-                await enviarMenuConBotones(remite);
+                await enviarMenuInteligente(remite);
             }
             else if (opcion.includes('horario')) {
                 await enviarInformacion(remite, '1');
@@ -384,7 +454,7 @@ async function iniciarBot() {
                 await enviarInformacion(remite, '5');
             }
             else {
-                await enviarMenuConBotones(remite);
+                await enviarMenuInteligente(remite);
             }
             
         } catch (error) {
@@ -421,8 +491,8 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo con botones interactivos</p>'}
-                <div class="footer">Los botones aparecerán debajo del mensaje</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo con sistema inteligente de menús</p>'}
+                <div class="footer">El bot usa: Botones → Lista → Texto</div>
             </div>
         </body>
         </html>
