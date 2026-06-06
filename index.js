@@ -91,6 +91,10 @@ async function iniciarBot() {
         if (msg.key.fromMe) return;
 
         const remite = msg.key.remoteJid;
+        // Ignorar grupos completamente
+        if (remite.endsWith('@g.us')) {
+            return;
+        }
 
         const textoRecibido =
             msg.message.conversation ||
@@ -100,7 +104,7 @@ async function iniciarBot() {
 
         const opcion = textoRecibido.trim().toLowerCase();
 
-        console.log(`💬 Mensaje recibido de [${remite}]: "${textoRecibido}"`);
+        console.log(`📩 Mensaje privado recibido`);
 
         const menuPrincipal = `
 ✨ *¡Bienvenido(a) al Parque Temático Saqsayki!* ✨
@@ -126,24 +130,32 @@ Seleccione una opción:
 para volver al menú principal.
 `;
 
-        if (
-            opcion === 'hola' ||
-            opcion === 'buenas' ||
-            opcion === 'buenos dias' ||
-            opcion === 'buenas tardes' ||
-            opcion === 'buenas noches' ||
-            opcion === 'info' ||
-            opcion === 'informacion' ||
-            opcion === 'menu'
-        ) {
+    if (
+        opcion === 'hola' ||
+        opcion === 'buenas' ||
+        opcion === 'buenos dias' ||
+        opcion === 'buenas tardes' ||
+        opcion === 'buenas noches' ||
+        opcion === 'info' ||
+        opcion === 'informacion' ||
+        opcion === 'menu' ||
+        opcion.includes('horario') ||
+        opcion.includes('precio') ||
+        opcion.includes('paquete') ||
+        opcion.includes('ubicacion') ||
+        opcion.includes('ubicación')
+        opcion.includes('donde') ||
+        opcion.includes('dónde')
+        opcion.includes('restaurante')
+) {
 
-            await esperar(1000);
+    await esperar(1000);
 
-            await sock.sendMessage(remite, {
-                text: menuPrincipal
-            });
+    await sock.sendMessage(remite, {
+        text: menuPrincipal
+    });
 
-        }
+}
 
         else if (opcion === '1') {
 
