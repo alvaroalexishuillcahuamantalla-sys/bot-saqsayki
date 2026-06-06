@@ -15,76 +15,45 @@ let botNumber = '';
 const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ============================================================
-// MENÚ PRINCIPAL EN TEXTO CON FORMATO LLAMATIVO
+// MENÚ PRINCIPAL - Formato limpio y profesional
 // ============================================================
 async function enviarMenuTexto(remite) {
     const menuTexto = `
-╔══════════════════════════════════════╗
-║     ✨ *PARQUE TEMÁTICO SAQSAYKI* ✨     ║
-╚══════════════════════════════════════╝
+✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
 
-🏞️ Vive una experiencia única llena de 
-   aventura, diversión y naturaleza.
+Vive una experiencia única llena de aventura, diversión y naturaleza.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📌 *RESPONDA CON EL NÚMERO DE SU OPCIÓN:*
+📌 *Seleccione una opción escribiendo el número:*
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ *Horarios e ingreso*
+2️⃣ *Precios unitarios de juegos*
+3️⃣ *Paquetes promocionales*
+4️⃣ *Cómo llegar*
+5️⃣ *Restaurante*
 
-┌──────────────────────────────────────┐
-│ 1️⃣  *HORARIOS E INGRESO*              │
-│     📅 Conoce nuestros horarios       │
-└──────────────────────────────────────┘
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-┌──────────────────────────────────────┐
-│ 2️⃣  *PRECIOS UNITARIOS DE JUEGOS*     │
-│     💰 Precios por actividad          │
-└──────────────────────────────────────┘
+💡 *Ejemplo:* Escriba *1* para ver los horarios
 
-┌──────────────────────────────────────┐
-│ 3️⃣  *PAQUETES PROMOCIONALES*          │
-│     🎒 Ofertas y descuentos           │
-└──────────────────────────────────────┘
+📌 *Escriba: menu* para ver este mensaje nuevamente
 
-┌──────────────────────────────────────┐
-│ 4️⃣  *CÓMO LLEGAR*                     │
-│     🚗 Dirección y transportes        │
-└──────────────────────────────────────┘
-
-┌──────────────────────────────────────┐
-│ 5️⃣  *RESTAURANTE*                     │
-│     🍽️ Información gastronómica       │
-└──────────────────────────────────────┘
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 *EJEMPLO:* Escriba *1* para ver los horarios
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📌 *COMANDOS RÁPIDOS:*
-• *menu* - Ver este menú
-• *info* - Información general
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📍 *Saqsayki - Tu mejor experiencia* 🎢
+📍 *Saqsayki - Tu mejor experiencia*
 `;
 
     await sock.sendMessage(remite, { text: menuTexto });
-    console.log('✅ Menú de texto enviado');
+    console.log('✅ Menú enviado');
 }
 
 // ============================================================
-// MENÚ PARA GRUPOS (más compacto)
+// MENÚ PARA GRUPOS (más breve)
 // ============================================================
 async function enviarMenuGrupo(remite) {
     const menuGrupo = `
 ✨ *PARQUE TEMÁTICO SAQSAYKI* ✨
 
-━━━━━━━━━━━━━━━━━━━━━━
-
-📌 *RESPONDA CON EL NÚMERO:*
+Escriba el número de la opción:
 
 1️⃣ Horarios e ingreso
 2️⃣ Precios unitarios
@@ -92,16 +61,14 @@ async function enviarMenuGrupo(remite) {
 4️⃣ Cómo llegar
 5️⃣ Restaurante
 
-━━━━━━━━━━━━━━━━━━━━━━
-
-💡 *Ejemplo:* Escriba *1*
+💡 Ejemplo: 1
 `;
 
     await sock.sendMessage(remite, { text: menuGrupo });
 }
 
 // ============================================================
-// FUNCIÓN PARA ENVIAR INFORMACIÓN ESPECÍFICA
+// INFORMACIÓN ESPECÍFICA
 // ============================================================
 async function enviarInformacion(remite, opcion, esGrupo = false) {
     await esperar(1000);
@@ -111,164 +78,115 @@ async function enviarInformacion(remite, opcion, esGrupo = false) {
     switch(opcion) {
         case '1':
             texto = `
-╔══════════════════════════════════════╗
-║        🕒 *HORARIOS E INGRESO*         ║
-╚══════════════════════════════════════╝
+🕒 *HORARIOS E INGRESO*
 
-📅 *DÍAS:* Lunes a domingo (incluye feriados)
+📅 Lunes a domingo (incluyendo feriados)
+⏰ 9:30 a.m. a 5:30 p.m.
 
-⏰ *HORARIO:* 9:30 a.m. a 5:30 p.m.
+🎟️ *Precios de ingreso:*
+• Adultos: S/ 7.00
+• Niños: S/ 4.00
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎟️ *PRECIOS DE INGRESO:*
-
-┌──────────────────────────────────────┐
-│ 👨 *Adultos:* S/ 7.00                 │
-│ 👦 *Niños:* S/ 4.00                   │
-└──────────────────────────────────────┘
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ *EL INGRESO INCLUYE:*
-
+✅ *El ingreso incluye:*
 • Mano Gigante del Inca
 • Bosque Encantado de los Duendes
 • Mano de Choclo de Oro
 • Trilogía Andina
 • Diversos miradores turísticos
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         case '2':
             texto = `
-╔══════════════════════════════════════╗
-║     💰 *PRECIOS UNITARIOS DE JUEGOS*   ║
-╚══════════════════════════════════════╝
+💰 *PRECIOS UNITARIOS DE JUEGOS*
 
-🌊 *JUEGOS ACUÁTICOS*
+🌊 *Juegos Acuáticos*
+• Caminata en línea — S/ 5.00
+• Puente acuático — S/ 5.00
+• Tirolesa acuática — S/ 8.00
+• Puente aéreo — S/ 8.00
 
-┌──────────────────────────────────────┐
-│ • Caminata en línea — *S/ 5.00*       │
-│ • Puente acuático — *S/ 5.00*         │
-│ • Tirolesa acuática — *S/ 8.00*       │
-│ • Puente aéreo — *S/ 8.00*            │
-└──────────────────────────────────────┘
+⛰️ *Juegos de Altura*
+• Columpio Extremo "Vuelo del Cóndor" — S/ 20.00
+• Circuito de 21 obstáculos extremos — S/ 20.00
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⛰️ *JUEGOS DE ALTURA*
-
-┌──────────────────────────────────────┐
-│ • Columpio Extremo "Vuelo del        │
-│   Cóndor" — *S/ 20.00*                │
-│                                      │
-│ • Circuito de 21 obstáculos          │
-│   extremos — *S/ 20.00*              │
-└──────────────────────────────────────┘
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         case '3':
             texto = `
-╔══════════════════════════════════════╗
-║    🎒 *PAQUETES PROMOCIONALES*         ║
-╚══════════════════════════════════════╝
+🎒 *PAQUETES PROMOCIONALES*
 
-💦 *PAQUETE ACUÁTICO* — *S/ 25.00*
+💦 *Paquete Acuático* — S/ 25.00
+• Entrada al parque
+• Puente acuático
+• Caminata en línea
+• Tirolesa acuática
+• Puente aéreo
 
-✅ Entrada al parque
-✅ Puente acuático
-✅ Caminata en línea
-✅ Tirolesa acuática
-✅ Puente aéreo
+🧗 *Paquete Aventurero* — S/ 35.00
+• Entrada al parque
+• Columpio extremo
+• Circuito de 21 obstáculos
+• Puente acuático
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔥 *Paquete Full* — S/ 45.00
+• Entrada al parque
+• Columpio extremo
+• Circuito de 21 obstáculos
+• Tirolesa acuática
+• Caminata en línea
+• Puente aéreo
+• Puente acuático
 
-🧗 *PAQUETE AVENTURERO* — *S/ 35.00*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ Entrada al parque
-✅ Columpio extremo
-✅ Circuito de 21 obstáculos
-✅ Puente acuático
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔥 *PAQUETE FULL* — *S/ 45.00*
-
-✅ Entrada al parque
-✅ Columpio extremo
-✅ Circuito de 21 obstáculos
-✅ Tirolesa acuática
-✅ Caminata en línea
-✅ Puente aéreo
-✅ Puente acuático
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         case '4':
             texto = `
-╔══════════════════════════════════════╗
-║        📍 *CÓMO LLEGAR A SAQSAYKI*    ║
-╚══════════════════════════════════════╝
+📍 *CÓMO LLEGAR A SAQSAYKI*
 
-🚗 *DISTANCIA:*
-Aproximadamente 30 minutos de Chicana Grande
+🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
 
-🚕 *EN TAXI:*
-Aproximadamente 15 minutos desde Chicana Grande
+🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🗺️ *UBICACIÓN (Google Maps):*
+🗺️ *Google Maps:*
 https://maps.google.com/?q=-16.4000,-71.5000
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📞 *Taxis recomendados:*
+926 050 769
+991 972 382
 
-📞 *TAXIS RECOMENDADOS:*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-┌──────────────────────────────────────┐
-│ 📱 926 050 769                        │
-│ 📱 991 972 382                        │
-└──────────────────────────────────────┘
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         case '5':
             texto = `
-╔══════════════════════════════════════╗
-║       🍽️ *RESTAURANTE SAQSAYKI*       ║
-╚══════════════════════════════════════╝
+🍽️ *RESTAURANTE SAQSAYKI*
 
-📌 *INFORMACIÓN IMPORTANTE*
+Muy pronto podrás visualizar nuestra carta completa.
 
-• Muy pronto podrás visualizar nuestra 
-  carta completa de platillos.
+📌 Solo realizamos reservas para días festivos y eventos especiales.
 
-• Solo realizamos *reservas* para días 
-  festivos y eventos especiales.
+Para más información comuníquese con nuestro equipo de atención al cliente.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📞 *Para más información:*
-Comuníquese directamente con nuestro 
-equipo de atención al cliente.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💬 Escriba *menu* para volver al inicio
 `;
             break;
         default:
             texto = `
-❌ *OPCIÓN NO VÁLIDA*
+❌ *Opción no válida*
 
 Por favor, seleccione una opción del 1 al 5.
 
@@ -377,7 +295,6 @@ async function iniciarBot() {
             
             // === MANEJO DE GRUPOS ===
             if (esGrupo) {
-                // Solo responder si mencionan al bot o escriben comandos específicos
                 const comandosPermitidos = ['menu', 'hola', 'info', '1', '2', '3', '4', '5'];
                 const esComando = comandosPermitidos.includes(opcion);
                 
@@ -459,7 +376,6 @@ async function iniciarBot() {
                 await enviarInformacion(remite, '5');
             }
             else {
-                // Mensaje no reconocido: mostrar menú
                 await enviarMenuTexto(remite);
             }
             
@@ -497,8 +413,8 @@ app.get('/', (req, res) => {
             <div class="card">
                 <h1>🤖 Bot Saqsayki</h1>
                 <div class="status">${botStatus}</div>
-                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Menú de texto formateado</p>'}
-                <div class="footer">Responde con el número de la opción</div>
+                ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code"><p>Escanea con WhatsApp</p>` : '<p>✅ Bot activo - Menú en formato limpio</p>'}
+                <div class="footer">Responde con el número de la opción (1, 2, 3, 4 o 5)</div>
             </div>
         </body>
         </html>
