@@ -153,7 +153,7 @@ async function enviarInformacion(remite, opcion, esGrupo = false) {
             texto = `
 📍 *CÓMO LLEGAR A SAQSAYKI*
 
-🚗 Nos encontramos aproximadamente a 30 minutos de Chicana Grande.
+🚗 Nos encontramos aproximadamente a 30 minutos a pie la de Chicana Grande.
 
 🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.
 
@@ -176,8 +176,6 @@ https://maps.google.com/?q=-16.4000,-71.5000
 Muy pronto podrás visualizar nuestra carta completa.
 
 📌 Solo realizamos reservas para días festivos y eventos especiales.
-
-Para más información comuníquese con nuestro equipo de atención al cliente.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
