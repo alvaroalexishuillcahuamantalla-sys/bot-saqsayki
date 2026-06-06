@@ -174,9 +174,6 @@ https://maps.google.com/?q=-16.4000,-71.5000
 Muy pronto podrás visualizar nuestra carta completa.
 
 📌 Solo realizamos reservas para días festivos y eventos especiales.
-
-¿Tienes alguna consulta? Escríbenos sin problema, estamos para ayudarte.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💬 Escriba *menu* para volver al inicio
