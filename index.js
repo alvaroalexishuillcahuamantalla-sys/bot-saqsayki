@@ -1,7 +1,6 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const express = require('express');
 const pino = require('pino');
-const axios = require('axios');
 const fs = require('fs');
 
 const app = express();
@@ -11,28 +10,38 @@ let qrCodeUrl = '';
 let botStatus = 'Iniciando...';
 let sock = null;
 
-// Endpoint para UptimeRobot
+// ============================================================
+// BOTÓN DE RESETEO (Accede a /reset para limpiar la sesión)
+// ============================================================
+app.get('/reset', (req, res) => {
+    if (fs.existsSync('sesion_whatsapp')) {
+        fs.rmSync('sesion_whatsapp', { recursive: true, force: true });
+        res.send('<h1>Sesión borrada. El bot se está reiniciando...</h1><p>Vuelve a <a href="/">inicio</a> en 5 segundos.</p>');
+        setTimeout(() => process.exit(), 1000); // Esto reinicia el proceso en Render
+    } else {
+        res.send('No había archivos de sesión para borrar.');
+    }
+});
+
 app.get('/ping', (req, res) => res.status(200).send('pong'));
 
-// Interfaz Web Principal
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
-            <meta charset="UTF-8">
             <meta http-equiv="refresh" content="3">
             <title>Bot Saqsayki</title>
             <style>
                 body { font-family: Arial; text-align: center; padding: 50px; }
-                .qr-container { margin-top: 30px; }
-                img { border: 5px solid #25d366; border-radius: 10px; width: 300px; }
+                .qr { margin: 20px; border: 5px solid #25d366; border-radius: 10px; width: 300px; }
             </style>
         </head>
         <body>
             <h1>Bot Saqsayki - Estado</h1>
             <p><strong>${botStatus}</strong></p>
-            ${qrCodeUrl ? `<div class="qr-container"><img src="${qrCodeUrl}" alt="Escanea este QR con WhatsApp"></div>` : '<p>Si no ves QR, el bot ya está conectado.</p>'}
+            ${qrCodeUrl ? `<img class="qr" src="${qrCodeUrl}" alt="QR">` : '<p>Si no ves QR, el bot ya está conectado o reiniciando.</p>'}
+            <br><a href="/reset">🔄 Forzar reinicio de sesión (si el bot no conecta)</a>
         </body>
         </html>
     `);
@@ -73,20 +82,7 @@ async function iniciarBot() {
             }
         }
     });
-
-    sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0];
-        if (!msg || !msg.message || msg.key.fromMe) return;
-        const remite = msg.key.remoteJid;
-        const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
-        
-        if (texto === 'menu') await sock.sendMessage(remite, { text: "Bienvenido a Saqsayki.\n1. Horarios\n2. Precios\n3. Paquetes\n4. Ubicación\n5. Carta" });
-        if (texto === '5') {
-            // Aquí puedes añadir tu función de enviar carta de nuevo
-            await sock.sendMessage(remite, { text: "Enviando carta..." });
-        }
-    });
 }
 
 iniciarBot();
-app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor activo`));
