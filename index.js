@@ -12,24 +12,23 @@ app.get('/', (req, res) => {
         <meta http-equiv="refresh" content="2">
         <h1 style="text-align:center; font-family:sans-serif;">ESTADO: ${botStatus}</h1>
         <div style="text-align:center;">
-            ${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:350px; border: 5px solid #25d366; border-radius: 10px;">` : '<h3>Cargando QR... espera unos segundos</h3>'}
+            ${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:350px; border: 5px solid #25d366; border-radius: 10px;">` : '<h3>Cargando... espera unos segundos</h3>'}
         </div>
     `);
 });
 
 async function iniciarBot() {
     try {
-        // 🔥 LA SOLUCIÓN: Esto fuerza a usar la versión correcta de WhatsApp para que no rechace la conexión
         const { version } = await fetchLatestBaileysVersion();
-        
-        // Creamos una sesión nueva limpia
         const { state, saveCreds } = await useMultiFileAuthState('sesion_FINAL_CLIENTE'); 
         
         const sock = makeWASocket({
-            version, // Le pasamos la versión correcta aquí
+            version,
             auth: state,
-            printQRInTerminal: false, // Quitamos el mensaje de error molesto
-            browser: ['Saqsayki Bot', 'Chrome', '1.0.0']
+            printQRInTerminal: false,
+            browser: ['Saqsayki Bot', 'Chrome', '1.0.0'],
+            syncFullHistory: false, // 🔥 LA SOLUCIÓN: No descargar historial viejo para evitar que colapse
+            generateHighQualityLinkPreview: false // Ahorra memoria en Render
         });
 
         sock.ev.on('creds.update', saveCreds);
@@ -50,8 +49,8 @@ async function iniciarBot() {
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 if (statusCode !== DisconnectReason.loggedOut) {
-                    botStatus = 'Desconectado, reiniciando...';
-                    setTimeout(iniciarBot, 4000);
+                    botStatus = 'Desconectado, reconectando rápido...';
+                    setTimeout(iniciarBot, 2000);
                 } else {
                     botStatus = '❌ Sesión cerrada desde el celular.';
                 }
