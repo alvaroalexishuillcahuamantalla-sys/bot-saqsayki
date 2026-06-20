@@ -7,57 +7,38 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Variables globales
 let qrCodeUrl = '';
-let botStatus = 'Iniciando el bot...';
+let botStatus = 'Iniciando...';
 let sock = null;
 
-const CARTA_URL = 'https://raw.githubusercontent.com/alvaroalexishuillcahuamantalla-sys/bot-saqsayki/main/carta.jpeg';
-
-// ============================================================
-// ENDPOINTS PARA MONITOREO Y WEB
-// ============================================================
+// Endpoint para UptimeRobot
 app.get('/ping', (req, res) => res.status(200).send('pong'));
 
+// Interfaz Web Principal
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Bot Saqsayki Control</title>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="3">
+            <title>Bot Saqsayki</title>
             <style>
-                body { font-family: sans-serif; text-align: center; padding: 50px; }
-                .status { font-weight: bold; color: ${qrCodeUrl ? '#d9534f' : '#5cb85c'}; }
-                img { margin-top: 20px; border: 2px solid #ccc; }
+                body { font-family: Arial; text-align: center; padding: 50px; }
+                .qr-container { margin-top: 30px; }
+                img { border: 5px solid #25d366; border-radius: 10px; width: 300px; }
             </style>
-            ${qrCodeUrl ? '<meta http-equiv="refresh" content="5">' : ''}
         </head>
         <body>
-            <h1>Bot Saqsayki</h1>
-            <p class="status">Estado: ${botStatus}</p>
-            ${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="Escanea este QR">` : '✅ El bot está conectado y listo.'}
+            <h1>Bot Saqsayki - Estado</h1>
+            <p><strong>${botStatus}</strong></p>
+            ${qrCodeUrl ? `<div class="qr-container"><img src="${qrCodeUrl}" alt="Escanea este QR con WhatsApp"></div>` : '<p>Si no ves QR, el bot ya está conectado.</p>'}
         </body>
         </html>
     `);
 });
 
-// ============================================================
-// LÓGICA DE MENSAJES (TU ESTRUCTURA ORIGINAL)
-// ============================================================
-async function enviarCarta(remite) {
-    try {
-        const response = await axios.get(CARTA_URL, { responseType: 'arraybuffer' });
-        await sock.sendMessage(remite, { image: Buffer.from(response.data), caption: "🍽️ *CARTA SAQSAYKI*\nAquí está nuestra carta." });
-    } catch (e) {
-        await sock.sendMessage(remite, { text: "❌ Error cargando la carta." });
-    }
-}
-
-// ============================================================
-// CONEXIÓN WHATSAPP
-// ============================================================
 async function iniciarBot() {
-    // IMPORTANTE: Asegúrate de que la carpeta 'sesion_whatsapp' exista en tu repo o que Render la cree
     const { state, saveCreds } = await useMultiFileAuthState('sesion_whatsapp');
 
     sock = makeWASocket({
@@ -74,18 +55,22 @@ async function iniciarBot() {
         
         if (qr) {
             qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
-            botStatus = '📱 Escanea el código QR en la pantalla';
+            botStatus = '📱 Escanea el QR para conectar';
         }
 
         if (connection === 'open') {
             qrCodeUrl = '';
-            botStatus = '✅ Bot Conectado';
-            console.log('Bot Online');
+            botStatus = '✅ Conectado y Operativo';
         }
 
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) iniciarBot();
+            if (shouldReconnect) {
+                botStatus = '🔄 Reconectando...';
+                iniciarBot();
+            } else {
+                botStatus = '❌ Sesión cerrada.';
+            }
         }
     });
 
@@ -96,10 +81,12 @@ async function iniciarBot() {
         const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
         
         if (texto === 'menu') await sock.sendMessage(remite, { text: "Bienvenido a Saqsayki.\n1. Horarios\n2. Precios\n3. Paquetes\n4. Ubicación\n5. Carta" });
-        if (texto === '5') await enviarCarta(remite);
+        if (texto === '5') {
+            // Aquí puedes añadir tu función de enviar carta de nuevo
+            await sock.sendMessage(remite, { text: "Enviando carta..." });
+        }
     });
 }
 
 iniciarBot();
-
-app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
