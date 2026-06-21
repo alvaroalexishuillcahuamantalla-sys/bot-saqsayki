@@ -21,7 +21,7 @@ async function iniciarBot() {
             auth: state,
             printQRInTerminal: false,
             browser: ['Saqsayki Bot', 'Chrome', '1.0.0'],
-            syncFullHistory: false, 
+            syncFullHistory: false, // Evita descargar chats antiguos
             defaultQueryTimeoutMs: 60000, 
             connectTimeoutMs: 60000
         });
@@ -36,13 +36,21 @@ async function iniciarBot() {
         });
 
         sock.ev.on('messages.upsert', async (m) => {
+            // 🔥 SOLUCIÓN CRÍTICA: Solo procesar mensajes de notificación (en vivo). 
+            // Ignora el resto (historial/append).
+            if (m.type !== 'notify') return; 
+
             const msg = m.messages[0];
             if (!msg || !msg.message || msg.key.fromMe) return;
+
             const remite = msg.key.remoteJid;
-            if (remite.endsWith('@g.us')) return; // Bloqueo de grupos
+
+            // 🔥 BLOQUEO DE GRUPOS: Si termina en @g.us, el bot no hace nada
+            if (remite.endsWith('@g.us')) return; 
             
             const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
 
+            // Lógica de menús
             if (texto === 'menu' || texto === 'menú' || texto === 'hola') {
                 await sock.sendMessage(remite, { text: "¡Buenas noches! ✨\n\nBienvenido(a) al Parque Temático Saqsayki\n\nVive una experiencia única llena de aventura, diversión y naturaleza.\n\n📌 Seleccione una opción escribiendo el número:\n\n1️⃣ Horarios e ingreso\n2️⃣ Precios unitarios de juegos\n3️⃣ Paquetes promocionales\n4️⃣ Cómo llegar\n5️⃣ Restaurante 🍽️ (Ver carta completa)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💡 Ingrese una de las opciones\n\n📌 Comandos: Escriba menu para ver este mensaje nuevamente\n\n📍 Saqsayki - Tu mejor experiencia" });
             } 
@@ -67,6 +75,9 @@ async function iniciarBot() {
         });
     } catch (e) { console.log(e); }
 }
+
+process.on('uncaughtException', (err) => console.log('Error:', err));
+process.on('unhandledRejection', (err) => console.log('Error:', err));
 
 iniciarBot();
 app.listen(PORT);
