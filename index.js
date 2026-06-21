@@ -5,14 +5,14 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 let qrCodeUrl = '';
-let botStatus = 'Iniciando...';
+let botStatus = 'Iniciando sistema...';
 
 app.get('/', (req, res) => {
     res.send(`
         <meta http-equiv="refresh" content="2">
         <h1 style="text-align:center; font-family:sans-serif;">ESTADO: ${botStatus}</h1>
         <div style="text-align:center;">
-            ${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:300px; border: 5px solid #25d366; border-radius: 10px;">` : '<h3>Cargando...</h3>'}
+            ${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:300px; border: 5px solid #25d366; border-radius: 10px;">` : '<h3>Cargando... o el bot ya está conectado</h3>'}
         </div>
     `);
 });
@@ -20,8 +20,9 @@ app.get('/', (req, res) => {
 async function iniciarBot() {
     try {
         const { version } = await fetchLatestBaileysVersion();
-        // Cambiamos el nombre una última vez para saltar el historial roto que se quedó a medias
-        const { state, saveCreds } = await useMultiFileAuthState('sesion_ENTREGA_FINAL'); 
+        
+        // 1. MANTIENE LA SESIÓN ACTIVA: Guardará los datos aquí para no pedir QR a cada rato
+        const { state, saveCreds } = await useMultiFileAuthState('sesion_activa_bot'); 
         
         const sock = makeWASocket({
             version,
@@ -30,7 +31,7 @@ async function iniciarBot() {
             browser: ['Saqsayki Bot', 'Chrome', '1.0.0'],
             syncFullHistory: false, 
             markOnlineOnConnect: true,
-            defaultQueryTimeoutMs: 60000, // 🔥 Le damos mucho más tiempo para que no de "Timed Out"
+            defaultQueryTimeoutMs: 60000, 
             connectTimeoutMs: 60000,
             keepAliveIntervalMs: 10000
         });
@@ -47,7 +48,7 @@ async function iniciarBot() {
             
             if (connection === 'open') {
                 qrCodeUrl = '';
-                botStatus = '✅ CONECTADO Y LISTO';
+                botStatus = '✅ CONECTADO Y LISTO. SESIÓN GUARDADA.';
                 console.log("=========================================");
                 console.log("¡BOT COMPLETAMENTE CONECTADO Y LISTO!");
                 console.log("=========================================");
@@ -56,10 +57,10 @@ async function iniciarBot() {
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 if (statusCode !== DisconnectReason.loggedOut) {
-                    botStatus = 'Reconectando...';
-                    setTimeout(iniciarBot, 3000);
+                    botStatus = 'Reconectando automáticamente...';
+                    setTimeout(iniciarBot, 3000); // Se auto-reconecta sin pedir QR
                 } else {
-                    botStatus = '❌ Sesión cerrada.';
+                    botStatus = '❌ Sesión cerrada desde el celular.';
                 }
             }
         });
@@ -70,13 +71,23 @@ async function iniciarBot() {
                 if (!msg || !msg.message || msg.key.fromMe) return;
                 
                 const remite = msg.key.remoteJid;
+
+                // 2. BLOQUEO DE GRUPOS: Si el ID del remitente termina en "@g.us", es un grupo.
+                if (remite.endsWith('@g.us')) {
+                    console.log("🚫 Mensaje de grupo detectado e ignorado.");
+                    return; // Detiene el código aquí, el bot NO responde.
+                }
+                
                 const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
                 
-                console.log("📩 MENSAJE RECIBIDO DE", remite, ":", texto); // Esto te confirmará en Render si lee
+                console.log("📩 MENSAJE RECIBIDO DE", remite, ":", texto);
                 
-                if (texto === 'menu') {
-                    await sock.sendMessage(remite, { text: "Bienvenido a Saqsayki.\n1. Horarios\n2. Precios\n3. Paquetes\n4. Ubicación\n5. Carta" });
-                    console.log("✅ Respuesta 'menu' enviada!");
+                // 3. RESPUESTA SEGURA: Ahora responde si escriben "hola", "menu", "menú" o "buenos dias"
+                if (texto.includes('menu') || texto.includes('menú') || texto === 'hola' || texto === 'buenos dias' || texto === 'buenas tardes') {
+                    await sock.sendMessage(remite, { 
+                        text: "👋 ¡Bienvenido a Saqsayki!\n\nPor favor, elige una opción:\n1️⃣ Horarios\n2️⃣ Precios\n3️⃣ Paquetes\n4️⃣ Ubicación\n5️⃣ Carta" 
+                    });
+                    console.log("✅ Respuesta enviada correctamente.");
                 }
             } catch (error) {
                 console.log("Error al procesar mensaje:", error);
@@ -88,7 +99,7 @@ async function iniciarBot() {
     }
 }
 
-// 🔥 ESTUDO ANTI-CAÍDAS: Evita que Render se apague si hay un error de "Timed Out"
+// ESTUDO ANTI-CAÍDAS
 process.on('uncaughtException', (err) => console.log('Error ignorado:', err));
 process.on('unhandledRejection', (err) => console.log('Promesa ignorada:', err));
 
