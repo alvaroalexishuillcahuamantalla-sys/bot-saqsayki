@@ -7,23 +7,31 @@ const PORT = process.env.PORT || 10000;
 let qrCodeUrl = '';
 let botStatus = 'Iniciando sistema...';
 
+// Función para detectar la hora y saludar
+function obtenerSaludo() {
+    const hora = new Date().getHours();
+    if (hora >= 5 && hora < 12) return "¡Buenos días! ☀️";
+    if (hora >= 12 && hora < 19) return "¡Buenas tardes! 🌤️";
+    return "¡Buenas noches! ✨";
+}
+
 app.get('/', (req, res) => {
-    res.send(`<h1 style="text-align:center;">Estado: ${botStatus}</h1><div style="text-align:center;">${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:300px;">` : '<h3>Sistema activo.</h3>'}</div>`);
+    res.send(`<h1 style="text-align:center;">Estado: ${botStatus}</h1><div style="text-align:center;">${qrCodeUrl ? `<img src="${qrCodeUrl}" style="width:300px; border: 5px solid #25d366; border-radius: 10px;">` : '<h3>Sistema activo.</h3>'}</div>`);
 });
 
 async function iniciarBot() {
     try {
         const { version } = await fetchLatestBaileysVersion();
-        const { state, saveCreds } = await useMultiFileAuthState('sesion_activa_bot'); 
+        const { state, saveCreds } = await useMultiFileAuthState('sesion_final_definitiva'); 
         
         const sock = makeWASocket({
             version,
             auth: state,
             printQRInTerminal: false,
             browser: ['Saqsayki Bot', 'Chrome', '1.0.0'],
-            syncFullHistory: false, // Evita descargar chats antiguos
-            defaultQueryTimeoutMs: 60000, 
-            connectTimeoutMs: 60000
+            syncFullHistory: false, 
+            connectTimeoutMs: 120000,
+            defaultQueryTimeoutMs: 120000
         });
 
         sock.ev.on('creds.update', saveCreds);
@@ -32,27 +40,24 @@ async function iniciarBot() {
             const { connection, qr } = update;
             if (qr) qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
             if (connection === 'open') { qrCodeUrl = ''; botStatus = '✅ CONECTADO'; }
-            if (connection === 'close') { setTimeout(iniciarBot, 3000); }
+            if (connection === 'close') { setTimeout(iniciarBot, 5000); }
         });
 
         sock.ev.on('messages.upsert', async (m) => {
-            // 🔥 SOLUCIÓN CRÍTICA: Solo procesar mensajes de notificación (en vivo). 
-            // Ignora el resto (historial/append).
             if (m.type !== 'notify') return; 
 
             const msg = m.messages[0];
             if (!msg || !msg.message || msg.key.fromMe) return;
-
             const remite = msg.key.remoteJid;
-
-            // 🔥 BLOQUEO DE GRUPOS: Si termina en @g.us, el bot no hace nada
+            
             if (remite.endsWith('@g.us')) return; 
             
             const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
 
             // Lógica de menús
-            if (texto === 'menu' || texto === 'menú' || texto === 'hola') {
-                await sock.sendMessage(remite, { text: "¡Buenas noches! ✨\n\nBienvenido(a) al Parque Temático Saqsayki\n\nVive una experiencia única llena de aventura, diversión y naturaleza.\n\n📌 Seleccione una opción escribiendo el número:\n\n1️⃣ Horarios e ingreso\n2️⃣ Precios unitarios de juegos\n3️⃣ Paquetes promocionales\n4️⃣ Cómo llegar\n5️⃣ Restaurante 🍽️ (Ver carta completa)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💡 Ingrese una de las opciones\n\n📌 Comandos: Escriba menu para ver este mensaje nuevamente\n\n📍 Saqsayki - Tu mejor experiencia" });
+            if (texto === 'menu' || texto === 'menú' || texto === 'hola' || texto.includes('buenos dias') || texto.includes('buenas tardes') || texto.includes('buenas noches')) {
+                const saludo = obtenerSaludo();
+                await sock.sendMessage(remite, { text: `${saludo}\n\nBienvenido(a) al Parque Temático Saqsayki\n\nVive una experiencia única llena de aventura, diversión y naturaleza.\n\n📌 Seleccione una opción escribiendo el número:\n\n1️⃣ Horarios e ingreso\n2️⃣ Precios unitarios de juegos\n3️⃣ Paquetes promocionales\n4️⃣ Cómo llegar\n5️⃣ Restaurante 🍽️ (Ver carta completa)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💡 Ingrese una de las opciones\n\n📌 Comandos: Escriba menu para ver este mensaje nuevamente\n\n📍 Saqsayki - Tu mejor experiencia` });
             } 
             else if (texto === '1') {
                 await sock.sendMessage(remite, { text: "🕒 HORARIOS E INGRESO\n\n📅 Lunes a domingo (incluyendo feriados)\n⏰ 9:30 a.m. a 5:30 p.m.\n\n🎟️ Precios de ingreso:\n* Adultos: S/ 7.00\n* Niños: S/ 4.00\n\n✅ El ingreso incluye:\n* Mano Gigante del Inca\n* Bosque Encantado de los Duendes\n* Mano de Choclo de Oro\n* Trilogía Andina\n* Diversos miradores turísticos\n\n\n💬 Escriba menu para volver al inicio" });
@@ -64,7 +69,7 @@ async function iniciarBot() {
                 await sock.sendMessage(remite, { text: "🎒 PAQUETES PROMOCIONALES\n\n💦 Paquete Acuático — S/ 25.00\n* Entrada al parque\n* Puente acuático\n* Caminata en línea\n* Tirolesa acuática\n* Puente aéreo\n\n🧗 Paquete Aventurero — S/ 35.00\n* Entrada al parque\n* Columpio extremo\n* Circuito de 21 obstáculos\n* Puente acuático\n\n🔥 Paquete Full — S/ 45.00\n* Entrada al parque\n* Columpio extremo\n* Circuito de 21 obstáculos\n* Tirolesa acuática\n* Caminata en línea\n* Puente aéreo\n* Puente acuático\n\n\n💬 Escriba menu para volver al inicio" });
             }
             else if (texto === '4') {
-                await sock.sendMessage(remite, { text: "📍 CÓMO LLEGAR A SAQSAYKI\n\n🏃‍♂️‍➡️ Nos encontramos aproximadamente a 30 minutos a pie desde la Chicana Grande.\n\n🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.\n\n🗺️ Google Maps:\nhttps://maps.app.goo.gl/xrwjZyXT2iBeMiUr9\n\n📞 Taxis recomendados:\n926 050 769\n991 972 382\n\n\n💬 Escriba menu para volver al inicio" });
+                await sock.sendMessage(remite, { text: "📍 CÓMO LLEGAR A SAQSAYKI\n\n🏃‍♂️‍➡️ Nos encontramos aproximadamente a 30 minutos a pie desde la Chicana Grande.\n\n🚕 En taxi podrás llegar en aproximadamente 15 minutos desde Chicana Grande.\n\n🗺️ Google Maps:\nhttps://maps.app.goo.gl/xrwjZyXT2iBeMiUr9\n\n📞 Taxis recomendados:\n926 050 769\n991 972 382\n\n🏍️Tours en cuatrimoto:\n942208931\n\n💬 Escriba menu para volver al inicio" });
             }
             else if (texto === '5') {
                 await sock.sendMessage(remite, { 
