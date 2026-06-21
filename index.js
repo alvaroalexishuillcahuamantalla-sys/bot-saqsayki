@@ -20,8 +20,7 @@ app.get('/', (req, res) => {
 async function iniciarBot() {
     try {
         const { version } = await fetchLatestBaileysVersion();
-        
-        // 1. MANTIENE LA SESIÓN ACTIVA: Guardará los datos aquí para no pedir QR a cada rato
+        // Mantiene la sesión activa
         const { state, saveCreds } = await useMultiFileAuthState('sesion_activa_bot'); 
         
         const sock = makeWASocket({
@@ -49,16 +48,13 @@ async function iniciarBot() {
             if (connection === 'open') {
                 qrCodeUrl = '';
                 botStatus = '✅ CONECTADO Y LISTO. SESIÓN GUARDADA.';
-                console.log("=========================================");
-                console.log("¡BOT COMPLETAMENTE CONECTADO Y LISTO!");
-                console.log("=========================================");
             }
             
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
                 if (statusCode !== DisconnectReason.loggedOut) {
                     botStatus = 'Reconectando automáticamente...';
-                    setTimeout(iniciarBot, 3000); // Se auto-reconecta sin pedir QR
+                    setTimeout(iniciarBot, 3000);
                 } else {
                     botStatus = '❌ Sesión cerrada desde el celular.';
                 }
@@ -72,22 +68,18 @@ async function iniciarBot() {
                 
                 const remite = msg.key.remoteJid;
 
-                // 2. BLOQUEO DE GRUPOS: Si el ID del remitente termina en "@g.us", es un grupo.
+                // BLOQUEO DE GRUPOS: Si el ID termina en @g.us, ignoramos
                 if (remite.endsWith('@g.us')) {
-                    console.log("🚫 Mensaje de grupo detectado e ignorado.");
-                    return; // Detiene el código aquí, el bot NO responde.
+                    return; 
                 }
                 
                 const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim().toLowerCase();
                 
-                console.log("📩 MENSAJE RECIBIDO DE", remite, ":", texto);
-                
-                // 3. RESPUESTA SEGURA: Ahora responde si escriben "hola", "menu", "menú" o "buenos dias"
-                if (texto.includes('menu') || texto.includes('menú') || texto === 'hola' || texto === 'buenos dias' || texto === 'buenas tardes') {
+                // FORMATO ORIGINAL SOLICITADO
+                if (texto === 'menu' || texto === 'menú' || texto === 'hola') {
                     await sock.sendMessage(remite, { 
-                        text: "👋 ¡Bienvenido a Saqsayki!\n\nPor favor, elige una opción:\n1️⃣ Horarios\n2️⃣ Precios\n3️⃣ Paquetes\n4️⃣ Ubicación\n5️⃣ Carta" 
+                        text: "Bienvenido a Saqsayki.\n1. Horarios\n2. Precios\n3. Paquetes\n4. Ubicación\n5. Carta" 
                     });
-                    console.log("✅ Respuesta enviada correctamente.");
                 }
             } catch (error) {
                 console.log("Error al procesar mensaje:", error);
@@ -99,7 +91,6 @@ async function iniciarBot() {
     }
 }
 
-// ESTUDO ANTI-CAÍDAS
 process.on('uncaughtException', (err) => console.log('Error ignorado:', err));
 process.on('unhandledRejection', (err) => console.log('Promesa ignorada:', err));
 
